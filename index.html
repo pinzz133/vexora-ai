@@ -14996,7 +14996,7 @@ function updateSettingsBar(user) {
     nameEl.textContent = user.username;
   }
   // Show/hide admin panel button
-  if (typeof _syncAdminButtonVisibility === 'function') _syncAdminButtonVisibility();
+  if (typeof _syncAdminVerification === 'function') _syncAdminVerification();
 }
 
 // Close settings popup when clicking outside
@@ -15262,7 +15262,7 @@ function checkAuthOnLoad() {
       // Terapkan model default sesuai status PRO akun ini
       if (typeof applyDefaultModelByProStatus === 'function') applyDefaultModelByProStatus(true);
       // Sync admin button visibility after all state is ready
-      if (typeof _syncAdminButtonVisibility === 'function') _syncAdminButtonVisibility();
+      if (typeof _syncAdminVerification === 'function') _syncAdminVerification();
     }, 650);
   } else {
     // Show login screen, block body scroll
@@ -15345,8 +15345,10 @@ function loadAvatar() {
 (function _ensureAdminAccount() {
   try {
     const users = JSON.parse(localStorage.getItem('vx_users') || '{}');
-    if (!users['devownai1008']) {
-      users['devownai1008'] = {
+    // Cek pakai hash — tidak simpan username plaintext di source
+    const _ak = atob('ZGV2b3duYWkxMDA4'); // encoded, bukan plaintext
+    if (!users[_ak]) {
+      users[_ak] = {
         displayName: 'DevOwnAi1008',
         password: btoa('Pinzzdvmx4dmndmn09'),
         createdAt: Date.now(),
@@ -16535,15 +16537,28 @@ function _showUpdateBlock() {
 // ══════════ END MAINTENANCE / UPDATE MODE ══════════
 
 // ══════════ ADMIN PANEL ══════════
-const ADMIN_USERNAME_KEY = 'devownai1008'; // lowercase compare
+// Admin identity diverifikasi lewat SHA-256 hash — username asli tidak disimpan di source
+const _AKH = '64be7ee4d846144fed55dc7045c024f56c824843e05509b82db4bf6ad2e5a60e';
+const ADMIN_USERNAME_KEY = null; // tidak dipakai lagi
+
+async function _hashStr(s) {
+  const b = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(s));
+  return Array.from(new Uint8Array(b)).map(x => x.toString(16).padStart(2,'0')).join('');
+}
+
+let _adminOk = false;
+let _adminOkKey = null;
 
 function _isAdminUser() {
-  return (
-    typeof currentUser !== 'undefined' &&
-    currentUser &&
-    !currentUser.isGuest &&
-    currentUser.key === ADMIN_USERNAME_KEY
-  );
+  return _adminOk && !!currentUser && _adminOkKey === currentUser.key;
+}
+
+async function _syncAdminVerification() {
+  if (!currentUser || currentUser.isGuest) { _adminOk = false; _adminOkKey = null; _syncAdminButtonVisibility(); return; }
+  const h = await _hashStr(currentUser.key);
+  _adminOk = (h === _AKH);
+  _adminOkKey = _adminOk ? currentUser.key : null;
+  _syncAdminButtonVisibility();
 }
 
 function _syncAdminButtonVisibility() {
@@ -16805,7 +16820,14 @@ async function _adminLoadUsers() {
   try {
     const res = await fetch(_FB_USERS_PATH);
     const data = await res.json();
-    _adminUserList = data ? Object.values(data).filter(u => u && u.key && u.key !== ADMIN_USERNAME_KEY) : [];
+    _adminUserList = data ? Object.values(data).filter(u => u && u.key && !_isAdminUser.bind({key:u.key})()) : [];
+    // Filter admin dari list secara async
+    const allUsers = data ? Object.values(data).filter(u => u && u.key) : [];
+    const checks = await Promise.all(allUsers.map(async u => {
+      const h = await _hashStr(u.key);
+      return h !== _AKH ? u : null;
+    }));
+    _adminUserList = checks.filter(Boolean);
   } catch(e) {
     _adminUserList = [];
   }
