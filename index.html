@@ -91,12 +91,16 @@ window._mermaidGlobalCounter = 0;
   padding: 28px 26px 22px;
   width: calc(100% - 40px);
   max-width: 420px;
+  max-height: 88dvh;
+  overflow-y: auto;
   box-shadow: 0 28px 90px rgba(0,0,0,.6);
   animation: fade-up .2s ease both;
   display: flex;
   flex-direction: column;
   gap: 18px;
 }
+.admin-panel-box::-webkit-scrollbar { width: 3px; }
+.admin-panel-box::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 3px; }
 .admin-panel-header {
   display: flex;
   align-items: center;
@@ -1470,6 +1474,8 @@ body::before {
   z-index: 20;
   transition: transform .3s cubic-bezier(.4,0,.2,1), width .3s cubic-bezier(.4,0,.2,1);
   flex-shrink: 0;
+  overflow: hidden;
+  min-height: 0;
 }
 
 #sidebar.collapsed {
