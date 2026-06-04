@@ -15105,6 +15105,8 @@ function checkAuthOnLoad() {
       if (typeof applyProState === 'function' && isPro()) applyProState();
       // Terapkan model default sesuai status PRO akun ini
       if (typeof applyDefaultModelByProStatus === 'function') applyDefaultModelByProStatus(true);
+      // Sync admin button visibility after all state is ready
+      if (typeof _syncAdminButtonVisibility === 'function') _syncAdminButtonVisibility();
     }, 650);
   } else {
     // Show login screen, block body scroll
