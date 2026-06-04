@@ -385,6 +385,139 @@ window._mermaidGlobalCounter = 0;
   to { transform: scaleX(0); }
 }
 
+/* ── Admin ban/pro user cards ── */
+.admin-user-card {
+  border: 1px solid var(--border2);
+  border-radius: 14px;
+  padding: 16px 18px;
+  background: var(--surface2);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.admin-user-label {
+  font-size: .88rem;
+  font-weight: 700;
+  color: var(--text);
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+.admin-user-desc { font-size: .74rem; color: var(--muted); line-height: 1.5; }
+.admin-user-select {
+  width: 100%;
+  background: var(--surface);
+  border: 1px solid var(--border2);
+  border-radius: 10px;
+  padding: 10px 12px;
+  font-size: .82rem;
+  color: var(--text);
+  font-family: inherit;
+  outline: none;
+  box-sizing: border-box;
+  transition: border-color .15s;
+  cursor: pointer;
+  appearance: none;
+  -webkit-appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23888' stroke-width='2.5' stroke-linecap='round'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 12px center;
+  padding-right: 32px;
+}
+.admin-user-select:focus { border-color: var(--accent); }
+.admin-user-select option { background: #1a1a1a; color: var(--text); }
+.admin-ban-duration-row {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 7px;
+}
+.admin-ban-dur-btn {
+  padding: 8px 6px;
+  border-radius: 9px;
+  border: 1px solid var(--border2);
+  background: var(--surface);
+  color: var(--text2);
+  font-size: .76rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all .15s;
+  text-align: center;
+}
+.admin-ban-dur-btn:hover { border-color: #ef4444; color: #ef4444; background: rgba(239,68,68,.08); }
+.admin-ban-dur-btn.perm { border-color: rgba(239,68,68,.35); color: #ef4444; }
+.admin-ban-dur-btn.perm:hover { background: rgba(239,68,68,.15); }
+.admin-user-status-label {
+  font-size: .75rem;
+  color: var(--muted);
+  padding: 7px 10px;
+  background: var(--surface);
+  border-radius: 8px;
+  border: 1px solid var(--border2);
+  min-height: 32px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.admin-user-status-label .usl-name { color: var(--text); font-weight: 600; }
+.admin-user-status-label .usl-ban { color: #ef4444; font-weight: 700; }
+.admin-user-status-label .usl-pro { color: #34d399; font-weight: 700; }
+.admin-user-action-row { display: flex; gap: 8px; }
+.admin-ban-btn {
+  flex: 1;
+  padding: 9px;
+  border-radius: 10px;
+  border: none;
+  background: linear-gradient(135deg, #ef4444, #dc2626);
+  color: #fff;
+  font-size: .8rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: opacity .15s;
+}
+.admin-ban-btn:hover { opacity: .85; }
+.admin-ban-btn:disabled { opacity: .45; cursor: not-allowed; }
+.admin-unban-btn {
+  padding: 9px 14px;
+  border-radius: 10px;
+  border: 1px solid var(--border2);
+  background: none;
+  color: var(--muted);
+  font-size: .8rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all .15s;
+  white-space: nowrap;
+}
+.admin-unban-btn:hover { border-color: #34d399; color: #34d399; }
+.admin-pro-btn {
+  flex: 1;
+  padding: 9px;
+  border-radius: 10px;
+  border: none;
+  background: linear-gradient(135deg, #34d399, #059669);
+  color: #fff;
+  font-size: .8rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: opacity .15s;
+}
+.admin-pro-btn:hover { opacity: .85; }
+.admin-pro-btn:disabled { opacity: .45; cursor: not-allowed; }
+.admin-revoke-btn {
+  padding: 9px 14px;
+  border-radius: 10px;
+  border: 1px solid var(--border2);
+  background: none;
+  color: var(--muted);
+  font-size: .8rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all .15s;
+  white-space: nowrap;
+}
+.admin-revoke-btn:hover { border-color: #ef4444; color: #ef4444; }
+.admin-user-loading { font-size: .74rem; color: var(--muted); text-align: center; padding: 8px; animation: ci-pulse 1.5s ease-in-out infinite; }
+
 /* ── Admin global API key card ── */
 .admin-apikey-card {
   border: 1px solid var(--border2);
@@ -14959,6 +15092,17 @@ function loginAsGuest() {
 function loginSuccess(user) {
   currentUser = user;
   setCurrentUser(user);
+  // Register user ke Firebase (non-blocking)
+  if (!user.isGuest) {
+    _registerUserToFirebase(user);
+    // Cek ban sebelum lanjut
+    _checkBanOnLogin(user).then(() => {
+      // Jika masih login (tidak kena ban), cek Firebase PRO grant
+      if (currentUser && currentUser.key === user.key) {
+        _checkFirebaseProGrant(user);
+      }
+    });
+  }
   // Load sessions for this user
   sessions = JSON.parse(localStorage.getItem('vx_sessions_' + user.key) || '[]');
   // Load API key for this user (provider-aware key, fallback to old format)
@@ -15075,6 +15219,12 @@ function checkAuthOnLoad() {
     if (screen) screen.remove();
     document.body.classList.remove('login-active');
     currentUser = saved;
+    // Cek ban & PRO grant dari Firebase untuk session yang tersimpan
+    if (!saved.isGuest) {
+      _checkBanOnLogin(saved).then(() => {
+        if (currentUser && currentUser.key === saved.key) _checkFirebaseProGrant(saved);
+      });
+    }
     // Load sessions for this user
     sessions = JSON.parse(localStorage.getItem('vx_sessions_' + saved.key) || '[]');
     // Load API key for this user (provider-aware key, fallback to old format)
@@ -16574,6 +16724,300 @@ async function adminToggleGlobalKey(on) {
   } catch(e) {}
 }
 // ══════════ END ADMIN PANEL ══════════
+
+// ══════════ USER REGISTRY + BAN + GRANT PRO ══════════
+const _FB_USERS_PATH  = _FB_CONFIG.databaseURL + '/users.json';
+const _FB_BAN_PATH    = _FB_CONFIG.databaseURL + '/bans.json';
+const _FB_PRO_PATH    = _FB_CONFIG.databaseURL + '/grantedPro.json';
+
+// ── Register user ke Firebase saat login ──
+async function _registerUserToFirebase(user) {
+  if (!user || user.isGuest) return;
+  try {
+    const path = _FB_CONFIG.databaseURL + '/users/' + user.key + '.json';
+    await fetch(path, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ username: user.username, key: user.key, lastLogin: Date.now() })
+    });
+  } catch(e) {}
+}
+
+// ── Cek ban saat login — blokir jika kena ban ──
+async function _checkBanOnLogin(user) {
+  if (!user || user.isGuest) return;
+  try {
+    const path = _FB_CONFIG.databaseURL + '/bans/' + user.key + '.json';
+    const res = await fetch(path);
+    const data = await res.json();
+    if (!data || !data.active) return;
+    // Ban permanen atau belum expired
+    const isPerm = data.permanent === true;
+    const expired = !isPerm && data.until && Date.now() > data.until;
+    if (expired) {
+      // Hapus ban yang sudah expired
+      await fetch(path, { method: 'DELETE' });
+      return;
+    }
+    // Blokir user — logout dan tampilkan pesan
+    setCurrentUser(null);
+    currentUser = null;
+    const remaining = isPerm ? null : Math.ceil((data.until - Date.now()) / 60000);
+    const msg = isPerm
+      ? 'Akunmu telah diblokir secara permanen oleh admin.'
+      : `Akunmu diblokir selama ${remaining} menit lagi.`;
+    // Tampilkan login screen dengan pesan ban
+    document.body.classList.add('login-active');
+    const screen = document.getElementById('login-screen');
+    if (screen) screen.style.display = '';
+    const errEl = document.getElementById('login-error');
+    if (errEl) { errEl.textContent = '🚫 ' + msg; errEl.className = 'login-error show'; }
+  } catch(e) {}
+}
+
+// ── Cek Firebase PRO grant untuk user ini ──
+async function _checkFirebaseProGrant(user) {
+  if (!user || user.isGuest) return;
+  try {
+    const path = _FB_CONFIG.databaseURL + '/grantedPro/' + user.key + '.json';
+    const res = await fetch(path);
+    const data = await res.json();
+    if (data && data.active) {
+      // Set PRO di localStorage untuk user ini
+      if (typeof proKey === 'function') {
+        localStorage.setItem(proKey('unlocked'), '1');
+        if (typeof updateProUI === 'function') updateProUI();
+        if (typeof applyProState === 'function') applyProState();
+      }
+    }
+  } catch(e) {}
+}
+
+// ── Admin: load daftar user dari Firebase ──
+let _adminUserList = [];
+async function _adminLoadUsers() {
+  try {
+    const res = await fetch(_FB_USERS_PATH);
+    const data = await res.json();
+    _adminUserList = data ? Object.values(data).filter(u => u && u.key && u.key !== ADMIN_USERNAME_KEY) : [];
+  } catch(e) {
+    _adminUserList = [];
+  }
+}
+
+// ── Admin: load ban & pro data ──
+let _adminBanData = {};
+let _adminProData = {};
+async function _adminLoadBanPro() {
+  try {
+    const [banRes, proRes] = await Promise.all([
+      fetch(_FB_BAN_PATH),
+      fetch(_FB_PRO_PATH)
+    ]);
+    _adminBanData = (await banRes.json()) || {};
+    _adminProData = (await proRes.json()) || {};
+  } catch(e) {}
+}
+
+// ── Admin: render dropdown user ──
+function _adminPopulateSelect(selectId, loadingId) {
+  const sel = document.getElementById(selectId);
+  const loading = document.getElementById(loadingId);
+  if (!sel) return;
+  if (loading) loading.style.display = 'none';
+  sel.style.display = '';
+  sel.innerHTML = '<option value="">— Pilih user —</option>';
+  _adminUserList.forEach(u => {
+    const opt = document.createElement('option');
+    opt.value = u.key;
+    opt.textContent = u.username + ' (' + u.key + ')';
+    sel.appendChild(opt);
+  });
+}
+
+// ── Admin: refresh panel user lists ──
+async function _adminRefreshUserPanel() {
+  await _adminLoadUsers();
+  await _adminLoadBanPro();
+  _adminPopulateSelect('admin-ban-select', 'admin-ban-loading');
+  _adminPopulateSelect('admin-pro-select', 'admin-pro-loading');
+  // Reset status labels
+  ['admin-ban-status-label','admin-pro-status-label'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) { el.style.display = 'none'; el.innerHTML = ''; }
+  });
+  ['admin-ban-dur-row','admin-ban-action-row','admin-pro-action-row'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.style.display = 'none';
+  });
+}
+
+// ── Admin: ban select changed ──
+let _adminBanSelectedDur = null;
+function adminBanSelectChanged() {
+  const key = document.getElementById('admin-ban-select').value;
+  const statusEl = document.getElementById('admin-ban-status-label');
+  const durRow = document.getElementById('admin-ban-dur-row');
+  const actionRow = document.getElementById('admin-ban-action-row');
+  const banBtn = document.getElementById('admin-ban-btn');
+  _adminBanSelectedDur = null;
+  if (banBtn) banBtn.disabled = true;
+  if (!key) {
+    if (statusEl) statusEl.style.display = 'none';
+    if (durRow) durRow.style.display = 'none';
+    if (actionRow) actionRow.style.display = 'none';
+    return;
+  }
+  const user = _adminUserList.find(u => u.key === key);
+  const banInfo = _adminBanData[key];
+  const isBanned = banInfo && banInfo.active && (banInfo.permanent || (banInfo.until && Date.now() < banInfo.until));
+  if (statusEl) {
+    statusEl.style.display = '';
+    const name = user ? user.username : key;
+    if (isBanned) {
+      const durTxt = banInfo.permanent ? 'Permanen' : Math.ceil((banInfo.until - Date.now()) / 60000) + ' menit lagi';
+      statusEl.innerHTML = `<span class="usl-name">${name}</span> — <span class="usl-ban">Dibanned (${durTxt})</span>`;
+    } else {
+      statusEl.innerHTML = `<span class="usl-name">${name}</span> — Tidak dibanned`;
+    }
+  }
+  if (durRow) durRow.style.display = '';
+  if (actionRow) actionRow.style.display = '';
+}
+
+// ── Admin: set ban duration ──
+function adminSetBanDur(mins) {
+  _adminBanSelectedDur = mins;
+  const banBtn = document.getElementById('admin-ban-btn');
+  if (banBtn) {
+    banBtn.disabled = false;
+    banBtn.textContent = mins === -1 ? '🚫 Ban Permanen' : `🚫 Ban ${mins} Menit`;
+  }
+  // Highlight selected button
+  document.querySelectorAll('.admin-ban-dur-btn').forEach(btn => btn.style.outline = '');
+  event.target.style.outline = '2px solid #ef4444';
+}
+
+// ── Admin: do ban ──
+async function adminDoBan() {
+  if (!_isAdminUser()) return;
+  const key = document.getElementById('admin-ban-select').value;
+  if (!key || _adminBanSelectedDur === null) return;
+  const banBtn = document.getElementById('admin-ban-btn');
+  banBtn.disabled = true;
+  banBtn.textContent = 'Memproses...';
+  const isPerm = _adminBanSelectedDur === -1;
+  const until = isPerm ? null : Date.now() + _adminBanSelectedDur * 60 * 1000;
+  try {
+    const path = _FB_CONFIG.databaseURL + '/bans/' + key + '.json';
+    await fetch(path, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ active: true, permanent: isPerm, until: until, bannedAt: Date.now() })
+    });
+    _adminBanData[key] = { active: true, permanent: isPerm, until: until };
+    banBtn.textContent = '✅ Berhasil!';
+    setTimeout(() => { adminBanSelectChanged(); }, 1500);
+  } catch(e) {
+    banBtn.disabled = false;
+    banBtn.textContent = '❌ Gagal';
+    setTimeout(() => { banBtn.textContent = '🚫 Ban User'; }, 2000);
+  }
+}
+
+// ── Admin: do unban ──
+async function adminDoUnban() {
+  if (!_isAdminUser()) return;
+  const key = document.getElementById('admin-ban-select').value;
+  if (!key) return;
+  try {
+    const path = _FB_CONFIG.databaseURL + '/bans/' + key + '.json';
+    await fetch(path, { method: 'DELETE' });
+    delete _adminBanData[key];
+    adminBanSelectChanged();
+  } catch(e) {}
+}
+
+// ── Admin: PRO select changed ──
+function adminProSelectChanged() {
+  const key = document.getElementById('admin-pro-select').value;
+  const statusEl = document.getElementById('admin-pro-status-label');
+  const actionRow = document.getElementById('admin-pro-action-row');
+  if (!key) {
+    if (statusEl) statusEl.style.display = 'none';
+    if (actionRow) actionRow.style.display = 'none';
+    return;
+  }
+  const user = _adminUserList.find(u => u.key === key);
+  const proInfo = _adminProData[key];
+  const hasPro = proInfo && proInfo.active;
+  if (statusEl) {
+    statusEl.style.display = '';
+    const name = user ? user.username : key;
+    statusEl.innerHTML = hasPro
+      ? `<span class="usl-name">${name}</span> — <span class="usl-pro">⭐ PRO Aktif</span>`
+      : `<span class="usl-name">${name}</span> — Tidak memiliki PRO`;
+  }
+  if (actionRow) actionRow.style.display = '';
+}
+
+// ── Admin: grant PRO ──
+async function adminDoGrantPro() {
+  if (!_isAdminUser()) return;
+  const key = document.getElementById('admin-pro-select').value;
+  if (!key) return;
+  const btn = document.getElementById('admin-pro-btn');
+  btn.disabled = true;
+  btn.textContent = 'Memproses...';
+  try {
+    const path = _FB_CONFIG.databaseURL + '/grantedPro/' + key + '.json';
+    await fetch(path, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ active: true, grantedAt: Date.now() })
+    });
+    _adminProData[key] = { active: true };
+    btn.textContent = '✅ Berhasil!';
+    setTimeout(() => { adminProSelectChanged(); }, 1500);
+  } catch(e) {
+    btn.disabled = false;
+    btn.textContent = '⭐ Grant PRO';
+  }
+}
+
+// ── Admin: revoke PRO ──
+async function adminDoRevokePro() {
+  if (!_isAdminUser()) return;
+  const key = document.getElementById('admin-pro-select').value;
+  if (!key) return;
+  try {
+    const path = _FB_CONFIG.databaseURL + '/grantedPro/' + key + '.json';
+    await fetch(path, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ active: false, revokedAt: Date.now() })
+    });
+    _adminProData[key] = { active: false };
+    // Cabut dari localStorage user jika sedang login
+    if (typeof proKey === 'function' && currentUser && currentUser.key === key) {
+      localStorage.removeItem(proKey('unlocked'));
+      if (typeof updateProUI === 'function') updateProUI();
+    }
+    adminProSelectChanged();
+  } catch(e) {}
+}
+
+// ── Override openAdminPanel untuk load user list ──
+const _origOpenAdminPanel = openAdminPanel;
+openAdminPanel = function() {
+  if (!_isAdminUser()) return;
+  const modal = document.getElementById('admin-panel-modal');
+  if (!modal) return;
+  _refreshAdminPanelUI();
+  modal.classList.add('show');
+  _adminRefreshUserPanel();
+};
+// ══════════ END USER REGISTRY + BAN + GRANT PRO ══════════
 
 function checkSecretCode(text) {
   const t = text.trim().toLowerCase();
@@ -18220,6 +18664,42 @@ document.addEventListener('DOMContentLoaded', () => {
         <button class="admin-apikey-save-btn" id="admin-apikey-save-btn" onclick="adminSaveGlobalKey()">Simpan</button>
       </div>
     </div>
+    <!-- ── BAN USER CARD ── -->
+    <div class="admin-user-card">
+      <div class="admin-user-label">🚫 Ban User</div>
+      <div class="admin-user-desc">Pilih user lalu tentukan durasi ban. User yang di-ban tidak bisa mengirim pesan.</div>
+      <div class="admin-user-loading" id="admin-ban-loading">Memuat daftar user...</div>
+      <select class="admin-user-select" id="admin-ban-select" style="display:none" onchange="adminBanSelectChanged()">
+        <option value="">— Pilih user —</option>
+      </select>
+      <div class="admin-user-status-label" id="admin-ban-status-label" style="display:none">Pilih user untuk melihat status</div>
+      <div class="admin-ban-duration-row" id="admin-ban-dur-row" style="display:none">
+        <button class="admin-ban-dur-btn" onclick="adminSetBanDur(10)">⏱ 10 Menit</button>
+        <button class="admin-ban-dur-btn" onclick="adminSetBanDur(30)">⏱ 30 Menit</button>
+        <button class="admin-ban-dur-btn" onclick="adminSetBanDur(60)">⏱ 60 Menit</button>
+        <button class="admin-ban-dur-btn perm" onclick="adminSetBanDur(-1)">🔒 Permanen</button>
+      </div>
+      <div class="admin-user-action-row" id="admin-ban-action-row" style="display:none">
+        <button class="admin-ban-btn" id="admin-ban-btn" onclick="adminDoBan()" disabled>🚫 Ban User</button>
+        <button class="admin-unban-btn" onclick="adminDoUnban()">✅ Unban</button>
+      </div>
+    </div>
+
+    <!-- ── GRANT PRO CARD ── -->
+    <div class="admin-user-card">
+      <div class="admin-user-label">⭐ Grant PRO</div>
+      <div class="admin-user-desc">Berikan atau cabut akses PRO untuk user tertentu secara manual.</div>
+      <div class="admin-user-loading" id="admin-pro-loading">Memuat daftar user...</div>
+      <select class="admin-user-select" id="admin-pro-select" style="display:none" onchange="adminProSelectChanged()">
+        <option value="">— Pilih user —</option>
+      </select>
+      <div class="admin-user-status-label" id="admin-pro-status-label" style="display:none">Pilih user untuk melihat status PRO</div>
+      <div class="admin-user-action-row" id="admin-pro-action-row" style="display:none">
+        <button class="admin-pro-btn" id="admin-pro-btn" onclick="adminDoGrantPro()">⭐ Grant PRO</button>
+        <button class="admin-revoke-btn" onclick="adminDoRevokePro()">✕ Cabut PRO</button>
+      </div>
+    </div>
+
     <div class="admin-panel-footer">
       Panel ini hanya dapat diakses oleh DevOwnAi1008
     </div>
