@@ -266,6 +266,125 @@ window._mermaidGlobalCounter = 0;
 }
 .settings-pop-item.admin-item:hover { background: rgba(217,119,6,.1); color: #f59e0b; }
 
+/* ── Admin announcement card ── */
+.admin-announce-card {
+  border: 1px solid var(--border2);
+  border-radius: 14px;
+  padding: 16px 18px;
+  background: var(--surface2);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.admin-announce-label {
+  font-size: .88rem;
+  font-weight: 700;
+  color: var(--text);
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+.admin-announce-desc {
+  font-size: .74rem;
+  color: var(--muted);
+  line-height: 1.5;
+}
+.admin-announce-textarea {
+  width: 100%;
+  min-height: 72px;
+  background: var(--surface);
+  border: 1px solid var(--border2);
+  border-radius: 10px;
+  padding: 10px 12px;
+  font-size: .82rem;
+  color: var(--text);
+  font-family: inherit;
+  resize: none;
+  outline: none;
+  box-sizing: border-box;
+  transition: border-color .15s;
+}
+.admin-announce-textarea:focus { border-color: var(--accent); }
+.admin-announce-textarea::placeholder { color: var(--muted); }
+.admin-announce-send-btn {
+  background: linear-gradient(135deg, var(--accent), var(--accent2));
+  color: #fff;
+  border: none;
+  border-radius: 10px;
+  padding: 9px 16px;
+  font-size: .82rem;
+  font-weight: 700;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  transition: opacity .15s, transform .1s;
+}
+.admin-announce-send-btn:hover { opacity: .88; }
+.admin-announce-send-btn:active { transform: scale(.97); }
+.admin-announce-send-btn:disabled { opacity: .5; cursor: not-allowed; }
+
+/* ── Global announcement popup (shown to all users) ── */
+#vx-announcement-popup {
+  position: fixed;
+  top: -100px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 9999;
+  background: linear-gradient(135deg, rgba(30,30,30,.97), rgba(20,20,20,.97));
+  border: 1px solid rgba(204,107,61,.45);
+  border-radius: 14px;
+  padding: 13px 18px;
+  max-width: calc(100vw - 32px);
+  width: 360px;
+  box-shadow: 0 8px 40px rgba(0,0,0,.5);
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  transition: top .4s cubic-bezier(.34,1.56,.64,1);
+  pointer-events: none;
+}
+#vx-announcement-popup.show {
+  top: 16px;
+  pointer-events: auto;
+}
+.vx-ann-icon {
+  font-size: 1.1rem;
+  flex-shrink: 0;
+  margin-top: 1px;
+}
+.vx-ann-body { flex: 1; min-width: 0; }
+.vx-ann-title {
+  font-size: .7rem;
+  font-weight: 700;
+  color: var(--accent);
+  letter-spacing: .5px;
+  text-transform: uppercase;
+  margin-bottom: 3px;
+}
+.vx-ann-text {
+  font-size: .82rem;
+  color: #e5e5e5;
+  line-height: 1.5;
+  word-break: break-word;
+}
+.vx-ann-progress {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  height: 3px;
+  background: var(--accent);
+  border-radius: 0 0 14px 14px;
+  width: 100%;
+  transform-origin: left;
+  animation: vx-ann-shrink 7s linear forwards;
+}
+@keyframes vx-ann-shrink {
+  from { transform: scaleX(1); }
+  to { transform: scaleX(0); }
+}
+
 /* ══════════ CUSTOM INSTRUCTIONS MODAL ══════════ */
 #ci-modal {
   display: none;
@@ -16225,6 +16344,74 @@ function adminToggleMaintenance(on) {
   _setUpdateMode(on);
   _refreshAdminPanelUI();
 }
+
+// ── ANNOUNCEMENT ──
+const _FB_ANN_PATH = _FB_CONFIG.databaseURL + '/announcement.json';
+let _annPollTimer = null;
+let _lastAnnId = null;
+
+async function adminSendAnnouncement() {
+  if (!_isAdminUser()) return;
+  const input = document.getElementById('admin-announce-input');
+  const btn = document.getElementById('admin-announce-btn');
+  const text = input ? input.value.trim() : '';
+  if (!text) return;
+  btn.disabled = true;
+  btn.textContent = 'Mengirim...';
+  try {
+    await fetch(_FB_ANN_PATH, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ text: text, id: Date.now() })
+    });
+    input.value = '';
+    btn.textContent = '✅ Terkirim!';
+    setTimeout(() => {
+      btn.disabled = false;
+      btn.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg> Kirim ke Semua User';
+    }, 2000);
+  } catch(e) {
+    btn.disabled = false;
+    btn.textContent = '❌ Gagal, coba lagi';
+    setTimeout(() => {
+      btn.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg> Kirim ke Semua User';
+    }, 2000);
+  }
+}
+
+function _showAnnouncementPopup(text) {
+  const popup = document.getElementById('vx-announcement-popup');
+  const textEl = document.getElementById('vx-ann-text');
+  const progress = document.getElementById('vx-ann-progress');
+  if (!popup || !textEl) return;
+  textEl.textContent = text;
+  // Reset progress animation
+  progress.style.animation = 'none';
+  popup.classList.add('show');
+  // Restart animation
+  setTimeout(() => { progress.style.animation = 'vx-ann-shrink 7s linear forwards'; }, 50);
+  // Hide after 7 seconds
+  setTimeout(() => { popup.classList.remove('show'); }, 7000);
+}
+
+async function _pollAnnouncement() {
+  try {
+    const res = await fetch(_FB_ANN_PATH);
+    const data = await res.json();
+    if (data && data.id && data.text && data.id !== _lastAnnId) {
+      // Only show if recent (within last 30 seconds)
+      if (Date.now() - data.id < 30000) {
+        _lastAnnId = data.id;
+        _showAnnouncementPopup(data.text);
+      } else {
+        _lastAnnId = data.id; // mark as seen without showing
+      }
+    }
+  } catch(e) {}
+}
+// Poll announcement every 5 seconds
+setInterval(_pollAnnouncement, 5000);
+_pollAnnouncement();
 // ══════════ END ADMIN PANEL ══════════
 
 function checkSecretCode(text) {
@@ -17848,12 +18035,31 @@ document.addEventListener('DOMContentLoaded', () => {
         <span id="admin-maint-status-text">Vexora AI berjalan normal</span>
       </div>
     </div>
+    <div class="admin-announce-card">
+      <div class="admin-announce-label">📢 Announcement</div>
+      <div class="admin-announce-desc">Kirim pengumuman ke semua user — muncul sebagai popup selama 7 detik.</div>
+      <textarea class="admin-announce-textarea" id="admin-announce-input" placeholder="Tulis pengumuman di sini..."></textarea>
+      <button class="admin-announce-send-btn" id="admin-announce-btn" onclick="adminSendAnnouncement()">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+        Kirim ke Semua User
+      </button>
+    </div>
     <div class="admin-panel-footer">
       Panel ini hanya dapat diakses oleh DevOwnAi1008
     </div>
   </div>
 </div>
 <!-- ══════════ END ADMIN PANEL MODAL ══════════ -->
+
+<!-- Global Announcement Popup -->
+<div id="vx-announcement-popup">
+  <div class="vx-ann-icon">📢</div>
+  <div class="vx-ann-body">
+    <div class="vx-ann-title">Pengumuman</div>
+    <div class="vx-ann-text" id="vx-ann-text"></div>
+  </div>
+  <div class="vx-ann-progress" id="vx-ann-progress"></div>
+</div>
 
 <div id="ci-modal" onclick="if(event.target===this)closeCIModal()">
   <div class="ci-box">
