@@ -5073,6 +5073,26 @@ body.theme-gold    { --accent: #cc6b3d; --accent2: #84cc16; --accent-soft: rgba(
   backdrop-filter:blur(4px);
 }
 #api-modal.show { display:grid; }
+#api-modal .modal-box {
+  display:flex;
+  flex-direction:column;
+  max-height:88dvh;
+  overflow:hidden;
+}
+#api-modal .api-modal-scroll {
+  flex:1;
+  overflow-y:auto;
+  overflow-x:hidden;
+  padding-right:2px;
+}
+#api-modal .api-modal-scroll::-webkit-scrollbar { width:3px; }
+#api-modal .api-modal-scroll::-webkit-scrollbar-thumb { background:var(--border2);border-radius:3px; }
+#api-modal .api-modal-footer {
+  flex-shrink:0;
+  padding-top:12px;
+  border-top:1px solid var(--border);
+  margin-top:4px;
+}
 
 /* memory / name / sysprompt modals */
 #memory-modal,
@@ -7598,45 +7618,49 @@ body.login-active #overlay {
 
 <div id="api-modal">
   <div class="modal-box" style="max-width:460px">
-    <h3>⚙ Pengaturan API</h3>
-    <p style="margin-bottom:14px">Pilih provider AI dan masukkan API key kamu.</p>
+    <div class="api-modal-scroll">
+      <h3>⚙ Pengaturan API</h3>
+      <p style="margin-bottom:14px">Pilih provider AI dan masukkan API key kamu.</p>
 
-    <!-- Provider Selector -->
-    <div style="display:grid;grid-template-columns:1fr;gap:8px;margin-bottom:16px" id="provider-grid">
-      <button class="provider-card active" id="pcard-openrouter" onclick="selectProvider('openrouter')">
-        <div class="pcard-icon">🔀</div>
-        <div class="pcard-name">OpenRouter</div>
-        <div class="pcard-sub">100+ model</div>
-      </button>
-    </div>
-
-    <!-- API Key info -->
-    <div id="provider-info" style="font-size:.72rem;color:var(--text2);margin-bottom:8px;padding:8px 10px;background:var(--surface2);border-radius:8px;border:1px solid var(--border2)"><a href="https://openrouter.ai/keys" target="_blank" style="color:var(--accent);text-decoration:none;">Buat API key di sini ↗</a></div>
-
-    <!-- API Key input -->
-    <input type="password" id="api-key-input" placeholder="Masukkan API key..."/>
-
-    <!-- Serper API Key -->
-    <div style="margin-top:14px;padding:14px 16px;background:var(--surface2);border:1px solid var(--border2);border-radius:12px">
-      <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
-        <span style="font-size:.95rem">🔍</span>
-        <span style="font-size:.85rem;font-weight:700;color:var(--text)">Serper API Key <span style="font-size:.7rem;font-weight:600;background:rgba(52,211,153,.15);color:#34d399;border:1px solid rgba(52,211,153,.3);border-radius:5px;padding:1px 6px;margin-left:4px">Opsional</span></span>
+      <!-- Provider Selector -->
+      <div style="display:grid;grid-template-columns:1fr;gap:8px;margin-bottom:16px" id="provider-grid">
+        <button class="provider-card active" id="pcard-openrouter" onclick="selectProvider('openrouter')">
+          <div class="pcard-icon">🔀</div>
+          <div class="pcard-name">OpenRouter</div>
+          <div class="pcard-sub">100+ model</div>
+        </button>
       </div>
-      <div style="font-size:.72rem;color:var(--muted);margin-bottom:8px;line-height:1.5">Web search lebih akurat & real-time. Jika kosong, pakai DuckDuckGo/Jina (gratis). <a href="https://serper.dev" target="_blank" style="color:var(--accent);text-decoration:none">Dapatkan key di sini ↗</a></div>
-      <input type="password" id="serper-key-input" placeholder="Masukkan Serper API key..." style="width:100%;padding:9px 12px;background:var(--surface);border:1px solid var(--border2);border-radius:8px;color:var(--text);font-size:.82rem;box-sizing:border-box;outline:none;font-family:inherit"/>
-      <div id="serper-status" style="margin-top:6px;font-size:.7rem;color:var(--muted);min-height:14px"></div>
+
+      <!-- API Key info -->
+      <div id="provider-info" style="font-size:.72rem;color:var(--text2);margin-bottom:8px;padding:8px 10px;background:var(--surface2);border-radius:8px;border:1px solid var(--border2)"><a href="https://openrouter.ai/keys" target="_blank" style="color:var(--accent);text-decoration:none;">Buat API key di sini ↗</a></div>
+
+      <!-- API Key input -->
+      <input type="password" id="api-key-input" placeholder="Masukkan API key..."/>
+
+      <!-- Serper API Key -->
+      <div style="margin-top:14px;padding:14px 16px;background:var(--surface2);border:1px solid var(--border2);border-radius:12px">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
+          <span style="font-size:.95rem">🔍</span>
+          <span style="font-size:.85rem;font-weight:700;color:var(--text)">Serper API Key <span style="font-size:.7rem;font-weight:600;background:rgba(52,211,153,.15);color:#34d399;border:1px solid rgba(52,211,153,.3);border-radius:5px;padding:1px 6px;margin-left:4px">Opsional</span></span>
+        </div>
+        <div style="font-size:.72rem;color:var(--muted);margin-bottom:8px;line-height:1.5">Web search lebih akurat & real-time. Jika kosong, pakai DuckDuckGo/Jina (gratis). <a href="https://serper.dev" target="_blank" style="color:var(--accent);text-decoration:none">Dapatkan key di sini ↗</a></div>
+        <input type="password" id="serper-key-input" placeholder="Masukkan Serper API key..." style="width:100%;padding:9px 12px;background:var(--surface);border:1px solid var(--border2);border-radius:8px;color:var(--text);font-size:.82rem;box-sizing:border-box;outline:none;font-family:inherit"/>
+        <div id="serper-status" style="margin-top:6px;font-size:.7rem;color:var(--muted);min-height:14px"></div>
+      </div>
+
+      <!-- Model select — berubah sesuai provider -->
+      <div id="model-picker-wrap" style="margin-top:14px;margin-bottom:4px">
+        <div class="model-picker-label">🤖 Pilih Model AI</div>
+        <div id="model-cards-grid"></div>
+      </div>
+      <select id="model-select" style="display:none"></select>
     </div>
 
-    <!-- Model select — berubah sesuai provider -->
-    <div id="model-picker-wrap" style="margin-top:8px;margin-bottom:14px">
-      <div class="model-picker-label">🤖 Pilih Model AI</div>
-      <div id="model-cards-grid"></div>
-    </div>
-    <select id="model-select" style="display:none"></select>
-
-    <div class="modal-btns" style="margin-top:14px">
-      <button class="btn-cancel" onclick="closeApiModal()">Batal</button>
-      <button class="btn-save" onclick="saveApiKey()">✅ Simpan</button>
+    <div class="api-modal-footer">
+      <div class="modal-btns">
+        <button class="btn-cancel" onclick="closeApiModal()">Batal</button>
+        <button class="btn-save" onclick="saveApiKey()">✅ Simpan</button>
+      </div>
     </div>
   </div>
 </div>
