@@ -13376,9 +13376,14 @@ async function fireSmartAPI(messages, hasImages = false, hasDoc = false) {
       try { data = await res.json(); } catch(_) {}
       const errMsg = data?.error?.message || '';
       // 401 = API key salah/tidak valid
-      if (res.status === 401) {
+      if (res.status === 401 || res.status === 403) {
         removeTyping();
-        appendMsg('ai', '🔑 API key tidak valid atau belum tersimpan dengan benar. Buka Pengaturan → API Key dan simpan ulang API key kamu.');
+        const errProvider = (typeof currentProvider !== 'undefined' ? currentProvider : null) || localStorage.getItem('vx_provider') || 'openrouter';
+        if (errProvider === 'gemini') {
+          appendMsg('ai', '🔑 API key Gemini tidak valid. Pastikan kamu sudah memasukkan API key dari <a href="https://aistudio.google.com/app/apikey" target="_blank" style="color:var(--accent)">Google AI Studio ↗</a> dan provider dipilih <b>Google Gemini</b>.');
+        } else {
+          appendMsg('ai', '🔑 API key tidak valid atau belum tersimpan dengan benar. Buka Pengaturan → API Key dan simpan ulang API key kamu.');
+        }
         return;
       }
       // 402/429 = kredit habis atau rate limit
@@ -13547,8 +13552,11 @@ async function fireSmartAPI(messages, hasImages = false, hasDoc = false) {
     removeTyping();
     // Deteksi token/kredit habis dari pesan error
     const eMsg = err.message || '';
-    if (/401|unauthorized|invalid.*key|api key/i.test(eMsg)) {
-      appendMsg('ai', '🔑 API key tidak valid. Buka Pengaturan → API Key dan simpan ulang API key kamu.');
+    if (/401|403|unauthorized|invalid.*key|api key/i.test(eMsg)) {
+      const errProvider2 = (typeof currentProvider !== 'undefined' ? currentProvider : null) || localStorage.getItem('vx_provider') || 'openrouter';
+      appendMsg('ai', errProvider2 === 'gemini'
+        ? '🔑 API key Gemini tidak valid. Pastikan sudah pilih provider <b>Google Gemini</b> dan masukkan key dari Google AI Studio.'
+        : '🔑 API key tidak valid. Buka Pengaturan → API Key dan simpan ulang API key kamu.');
     } else if (/insufficient|credit|quota|billing|payment|out of credits|no credits|balance|402|429/i.test(eMsg)) {
       appendMsg('ai', '💳 Kredit API key kamu habis. Silahkan isi ulang kredit di OpenRouter atau buat API key baru.');
     } else if (/fetch|network|failed to fetch/i.test(eMsg)) {
@@ -15372,7 +15380,7 @@ function loginSuccess(user) {
   // Load API key for this user (provider-aware key, fallback to old format)
   const _savedProvider2 = localStorage.getItem('vx_provider') || 'openrouter';
   apiKey = localStorage.getItem('vx_apikey_' + _savedProvider2 + '_' + user.key)
-        || localStorage.getItem('vx_apikey_' + user.key)
+        || (_savedProvider2 === 'openrouter' ? localStorage.getItem('vx_apikey_' + user.key) : '')
         || '';
   // Load memory for this user
   memories = JSON.parse(localStorage.getItem('vx_memory_' + user.key) || '[]');
@@ -16935,10 +16943,15 @@ async function _fetchGlobalApiKey() {
     const res = await fetch(_FB_APIKEY_PATH);
     const data = await res.json();
     if (data && data.active && data.key) {
-      // Apply global key — override user's local key
-      apiKey = data.key;
-      const keyInput = document.getElementById('api-key-input');
-      if (keyInput) keyInput.value = apiKey;
+      // Hanya override key jika user sedang pakai OpenRouter (provider default)
+      // Jika user pilih Gemini atau provider lain, jangan timpa key mereka
+      const activeProvider = (typeof currentProvider !== 'undefined' ? currentProvider : null)
+        || localStorage.getItem('vx_provider') || 'openrouter';
+      if (activeProvider === 'openrouter') {
+        apiKey = data.key;
+        const keyInput = document.getElementById('api-key-input');
+        if (keyInput) keyInput.value = apiKey;
+      }
     }
     // Refresh admin UI if admin
     if (_isAdminUser()) _refreshAdminApiKeyUI(data);
