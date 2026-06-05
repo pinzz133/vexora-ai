@@ -7623,21 +7623,16 @@ body.login-active #overlay {
       <p style="margin-bottom:14px">Pilih provider AI dan masukkan API key kamu.</p>
 
       <!-- Provider Selector -->
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:16px" id="provider-grid">
-        <button class="provider-card active" id="pcard-openrouter" onclick="selectProvider('openrouter')">
-          <div class="pcard-icon">🔀</div>
-          <div class="pcard-name">OpenRouter</div>
-          <div class="pcard-sub">100+ model</div>
-        </button>
-        <button class="provider-card" id="pcard-gemini" onclick="selectProvider('gemini')">
-          <div class="pcard-icon">✦</div>
-          <div class="pcard-name">Google Gemini</div>
-          <div class="pcard-sub">API langsung</div>
+      <div style="display:grid;grid-template-columns:1fr;gap:8px;margin-bottom:16px" id="provider-grid">
+        <button class="provider-card active" id="pcard-groq" onclick="selectProvider('groq')">
+          <div class="pcard-icon">⚡</div>
+          <div class="pcard-name">Groq</div>
+          <div class="pcard-sub">Ultra cepat · Gratis</div>
         </button>
       </div>
 
       <!-- API Key info -->
-      <div id="provider-info" style="font-size:.72rem;color:var(--text2);margin-bottom:8px;padding:8px 10px;background:var(--surface2);border-radius:8px;border:1px solid var(--border2)"><a href="https://openrouter.ai/keys" target="_blank" style="color:var(--accent);text-decoration:none;">Buat API key di sini ↗</a></div>
+      <div id="provider-info" style="font-size:.72rem;color:var(--text2);margin-bottom:8px;padding:8px 10px;background:var(--surface2);border-radius:8px;border:1px solid var(--border2)"><a href="https://console.groq.com/keys" target="_blank" style="color:var(--accent);text-decoration:none;">Dapatkan API key Groq gratis di sini ↗</a></div>
 
       <!-- API Key input -->
       <input type="password" id="api-key-input" placeholder="Masukkan API key..."/>
@@ -8045,38 +8040,32 @@ let sessions = [];
 let activeId  = null;
 function apiKeyStorageKey() {
   const u = (typeof currentUser !== 'undefined' && currentUser) ? currentUser.key : 'guest';
-  const provider = localStorage.getItem('vx_provider') || 'openrouter';
+  const provider = localStorage.getItem('vx_provider') || 'groq';
   return 'vx_apikey_' + provider + '_' + u;
 }
 let apiKey = '';
-let model = localStorage.getItem('vx_model') || 'openai/gpt-4o-mini';
+let model = localStorage.getItem('vx_model') || 'llama-3.3-70b-versatile';
 
 // ── Model tiers ──
-const MODEL_FREE_NORMAL = 'openai/gpt-4o-mini';
-const MODEL_FREE_SMART  = 'openai/gpt-4o';
-const MODEL_PRO_NORMAL  = 'anthropic/claude-sonnet-4-6';
-const MODEL_PRO_SMART   = 'anthropic/claude-opus-4-6';
+const MODEL_FREE_NORMAL = 'llama-3.3-70b-versatile';
+const MODEL_FREE_SMART  = 'llama-3.3-70b-versatile';
+const MODEL_PRO_NORMAL  = 'llama-3.3-70b-specdec';
+const MODEL_PRO_SMART   = 'qwen-qwq-32b';
 
 function getActiveModel(mode) {
-  // Jika provider adalah Gemini native, gunakan model Gemini yang dipilih user
-  const activeProvider = (typeof currentProvider !== 'undefined' ? currentProvider : null) || localStorage.getItem('vx_provider') || 'openrouter';
-  if (activeProvider === 'gemini') {
-    const savedModel = localStorage.getItem('vx_model');
-    const geminiModels = (typeof PROVIDERS !== 'undefined' && PROVIDERS['gemini']) ? PROVIDERS['gemini'].models : [];
-    const found = geminiModels.find(m => m.value === savedModel);
-    return found ? found.value : 'gemini-2.0-flash';
-  }
+  const savedModel = localStorage.getItem('vx_model');
+  const groqModels = (typeof PROVIDERS !== 'undefined' && PROVIDERS['groq']) ? PROVIDERS['groq'].models : [];
+  const found = groqModels.find(m => m.value === savedModel);
+  if (found) return found.value;
   const pro = typeof isPro === 'function' && isPro();
-  if (mode === 'smart-pro') return pro ? MODEL_PRO_SMART  : MODEL_FREE_SMART;
-  if (mode === 'normal-pro') return pro ? MODEL_PRO_NORMAL : MODEL_FREE_NORMAL;
-  if (mode === 'smart') return MODEL_FREE_SMART;
+  if (mode === 'smart-pro' || mode === 'normal-pro') return pro ? MODEL_PRO_NORMAL : MODEL_FREE_NORMAL;
   return MODEL_FREE_NORMAL;
 }
 
 // Helper: pilih model untuk fungsi utilitas (memory, rename, deep think, dll)
 // PRO user pakai Claude Sonnet, free user pakai gpt-4o-mini
 function getUtilityModel() {
-  return (typeof isPro === 'function' && isPro()) ? 'anthropic/claude-sonnet-4-6' : 'openai/gpt-4o-mini';
+  return (typeof isPro === 'function' && isPro()) ? 'llama-3.3-70b-specdec' : 'llama-3.3-70b-versatile';
 }
 let sidebarOpen = window.innerWidth > 640;
 let currentMode = localStorage.getItem('vx_mode') || 'normal';
@@ -8823,7 +8812,7 @@ async function sanitizeSearchQuery(userText) {
   const _dateStr = `${_day}/${_month}/${_year}`;
 
   try {
-    const res = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+    const res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
       method: 'POST',
       signal: AbortSignal.timeout(2500), // batas 2.5 detik agar tidak memblokir UX
       headers: {
@@ -9790,7 +9779,7 @@ async function extractMemories(userMsg, aiReply) {
 
   try {
     const existingFacts = loadMemories().map(m => m.fact).join('\n');
-    const res = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+    const res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -10067,14 +10056,14 @@ function forceScrollBottom() {
 // ─── Init ───
 function init() {
   // restore provider & populate model list first
-  currentProvider = localStorage.getItem('vx_provider') || 'openrouter';
+  currentProvider = localStorage.getItem('vx_provider') || 'groq';
   selectProvider(currentProvider);
   document.getElementById('api-key-input').value = apiKey;
   const savedModel = localStorage.getItem('vx_model') || '';
   const selEl = document.getElementById('model-select');
   if (selEl && savedModel) { const opt = selEl.querySelector(`option[value="${savedModel}"]`); if (opt) selEl.value = savedModel; }
   // restore provider
-  currentProvider = localStorage.getItem('vx_provider') || 'openrouter';
+  currentProvider = localStorage.getItem('vx_provider') || 'groq';
   // sync sidebar visual state on load
   if (!sidebarOpen) {
     sidebar.classList.add('collapsed');
@@ -10760,7 +10749,7 @@ async function autoGenerateTitle(sessionId, userMsg, aiReply) {
   if (!s || s.title !== 'Chat baru') return; // Only title first message
 
   try {
-    const res = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+    const res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -10825,57 +10814,33 @@ function exportChat() {
 
 // ─── Multi-Provider API System ───
 const PROVIDERS = {
-  openrouter: {
-    name: 'OpenRouter',
-    endpoint: 'https://openrouter.ai/api/v1/chat/completions',
-    keyPrefix: 'sk-or-',
-    keyPlaceholder: 'sk-or-v1-...',
-    info: '',
+  groq: {
+    name: 'Groq',
+    endpoint: 'https://api.groq.com/openai/v1/chat/completions',
+    keyPrefix: 'gsk_',
+    keyPlaceholder: 'gsk_...',
+    info: '<a href="https://console.groq.com/keys" target="_blank" style="color:var(--accent);text-decoration:none;">Dapatkan API key Groq gratis di sini ↗</a>',
     models: [
-      // ── GRATIS ──
-      { value: 'openai/gpt-4o-mini',                           label: 'GPT-4o Mini',           tag: 'Gratis · Serba bisa' },
-      { value: 'google/gemini-2.0-flash-exp:free',             label: 'Gemini 2.0 Flash',      tag: 'Gratis · Cepat' },
-      { value: 'google/gemini-2.5-pro-exp-03-25:free',         label: 'Gemini 2.5 Pro Exp',    tag: 'Gratis · Canggih' },
-      { value: 'meta-llama/llama-3.3-70b-instruct:free',       label: 'Llama 3.3 70B',         tag: 'Gratis · Teks panjang' },
-      { value: 'deepseek/deepseek-r1:free',                    label: 'DeepSeek R1',           tag: 'Gratis · Reasoning' },
-      { value: 'mistralai/mistral-small-3.1-24b-instruct:free',label: 'Mistral Small 3.1',     tag: 'Gratis · Ringan' },
-      // ── PRO — Umum ──
-      { value: 'anthropic/claude-sonnet-4-6',                  label: 'Vexora Pro 4.6',        tag: 'PRO · Terbaik', pro: true },
-      { value: 'openai/gpt-4o',                                label: 'GPT-4o',                tag: 'PRO · Multimodal', pro: true },
-      { value: 'google/gemini-2.5-pro',                        label: 'Gemini 2.5 Pro',        tag: 'PRO · Riset', pro: true },
-      { value: 'anthropic/claude-opus-4-6',                    label: 'Vexora Apex 4.6',       tag: 'PRO · Analisis berat', pro: true },
-      // ── PRO — Coding ──
-      { value: 'deepseek/deepseek-v4-pro',                     label: 'DeepSeek V4 Pro',       tag: 'PRO · Coding', pro: true },
-      { value: 'openai/o4-mini',                               label: 'OpenAI o4-mini',        tag: 'PRO · Coding+Math', pro: true },
-      // ── PRO — Riset & Analisis ──
-      { value: 'deepseek/deepseek-r1',                         label: 'DeepSeek R1 Full',      tag: 'PRO · Reasoning++', pro: true },
-    ]
-  },
-  gemini: {
-    name: 'Google Gemini',
-    // endpoint dibangun secara dinamis berdasarkan model yang dipilih
-    endpoint: 'https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent',
-    keyPrefix: 'AIza',
-    keyPlaceholder: 'AIzaSy...',
-    info: '<a href="https://aistudio.google.com/app/apikey" target="_blank" style="color:var(--accent);text-decoration:none;">Dapatkan API key Gemini gratis di sini ↗</a>',
-    models: [
-      // ── GRATIS ──
-      { value: 'gemini-2.0-flash',          label: 'Gemini 2.0 Flash',       tag: 'Gratis · Cepat' },
-      { value: 'gemini-2.0-flash-lite',     label: 'Gemini 2.0 Flash Lite',  tag: 'Gratis · Ringan' },
-      { value: 'gemini-1.5-flash',          label: 'Gemini 1.5 Flash',       tag: 'Gratis · Stabil' },
-      { value: 'gemini-1.5-flash-8b',       label: 'Gemini 1.5 Flash-8B',    tag: 'Gratis · Ultra Ringan' },
+      // ── Gratis (Free Tier) ──
+      { value: 'llama-3.3-70b-versatile',        label: 'Llama 3.3 70B',          tag: 'Gratis · Serba bisa' },
+      { value: 'llama-3.1-8b-instant',           label: 'Llama 3.1 8B Instant',   tag: 'Gratis · Ultra Cepat' },
+      { value: 'llama3-8b-8192',                 label: 'Llama 3 8B',             tag: 'Gratis · Ringan' },
+      { value: 'gemma2-9b-it',                   label: 'Gemma 2 9B',             tag: 'Gratis · Google' },
+      { value: 'mixtral-8x7b-32768',             label: 'Mixtral 8x7B',           tag: 'Gratis · Teks panjang' },
       // ── PRO ──
-      { value: 'gemini-2.5-pro',            label: 'Gemini 2.5 Pro',         tag: 'Terbaik · Reasoning', pro: true },
-      { value: 'gemini-2.5-flash',          label: 'Gemini 2.5 Flash',       tag: 'Cepat · Canggih', pro: true },
-      { value: 'gemini-1.5-pro',            label: 'Gemini 1.5 Pro',         tag: 'PRO · Stabil', pro: true },
+      { value: 'llama-3.3-70b-specdec',          label: 'Llama 3.3 70B SpecDec',  tag: 'PRO · Reasoning cepat', pro: true },
+      { value: 'llama3-70b-8192',                label: 'Llama 3 70B',            tag: 'PRO · Kuat', pro: true },
+      { value: 'llama-3.2-90b-vision-preview',   label: 'Llama 3.2 90B Vision',   tag: 'PRO · Multimodal', pro: true },
+      { value: 'deepseek-r1-distill-llama-70b',  label: 'DeepSeek R1 Llama 70B',  tag: 'PRO · Reasoning', pro: true },
+      { value: 'qwen-qwq-32b',                   label: 'Qwen QwQ 32B',           tag: 'PRO · Analisis', pro: true },
     ]
   }
 }
 // ── Default model berdasarkan status PRO ──
 // Non-PRO / akun baru  → GPT-4o Mini (gratis)
 // PRO                  → DeepSeek Coder V2 (PRO · Coding)
-const MODEL_DEFAULT_FREE = 'openai/gpt-4o-mini';
-const MODEL_DEFAULT_PRO  = 'anthropic/claude-opus-4-6';
+const MODEL_DEFAULT_FREE = 'llama-3.3-70b-versatile';
+const MODEL_DEFAULT_PRO  = 'llama-3.3-70b-specdec';
 
 function applyDefaultModelByProStatus(forceOverride) {
   const pro = typeof isPro === 'function' && isPro();
@@ -10887,7 +10852,7 @@ function applyDefaultModelByProStatus(forceOverride) {
     const saved = localStorage.getItem('vx_model');
     // Kalau ada pilihan tersimpan dan masih valid (tidak locked untuk status saat ini), pakai itu
     if (saved) {
-      const provModels = PROVIDERS['openrouter']?.models || [];
+      const provModels = (PROVIDERS['groq'] || {}).models || [];
       const savedMeta = provModels.find(m => m.value === saved);
       const isProModel = savedMeta && (savedMeta.pro === true || savedMeta.label.includes('PRO'));
       // Kalau akun non-PRO dan model tersimpan adalah PRO model → override ke default free
@@ -10924,15 +10889,15 @@ function applyDefaultModelByProStatus(forceOverride) {
       ? 'color:#e8976a;border-color:rgba(204,107,61,.3);background:rgba(204,107,61,.08)'
       : 'color:var(--accent);border-color:rgba(204,107,61,.3);background:rgba(204,107,61,.08)';
     t.textContent = pro
-      ? '🚀 Model otomatis: DeepSeek Coder V2 (PRO Coding)'
-      : '🤖 Model otomatis: GPT-4o Mini';
+      ? '🚀 Model otomatis: Llama 3.3 70B SpecDec (PRO)'
+      : '🤖 Model otomatis: Llama 3.3 70B (Groq)';
     chatEl2.appendChild(t);
     (_userScrolledUp=false,chatEl2.scrollTop=chatEl2.scrollHeight);
     setTimeout(() => { if (t.parentNode) t.remove(); }, 3000);
   }
 }
 
-let currentProvider = 'openrouter';
+let currentProvider = 'groq';
 
 function selectProvider(p) {
   currentProvider = p;
@@ -10971,11 +10936,7 @@ function selectProvider(p) {
   const provInfoEl = document.getElementById('provider-info');
   if (provInfoEl) {
     const infoHtml = PROVIDERS[p]?.info || '';
-    if (p === 'gemini') {
-      provInfoEl.innerHTML = infoHtml || '<a href="https://aistudio.google.com/app/apikey" target="_blank" style="color:var(--accent);text-decoration:none;">Dapatkan API key Gemini gratis di Google AI Studio ↗</a>';
-    } else {
-      provInfoEl.innerHTML = infoHtml || '<a href="https://openrouter.ai/keys" target="_blank" style="color:var(--accent);text-decoration:none;">Buat API key di sini ↗</a>';
-    }
+    provInfoEl.innerHTML = infoHtml || '<a href="https://console.groq.com/keys" target="_blank" style="color:var(--accent);text-decoration:none;">Dapatkan API key Groq gratis di sini ↗</a>';
   }
   // load saved key for this provider+user
   if (keyInp) {
@@ -10990,7 +10951,7 @@ function selectProvider(p) {
 // ─── API Modal ───
 function openApiModal() {
   document.getElementById('api-modal').classList.add('show');
-  selectProvider('openrouter');
+  selectProvider('groq');
   // restore saved model selection in cards
   const savedModel = localStorage.getItem('vx_model') || '';
   const sel = document.getElementById('model-select');
@@ -12317,7 +12278,7 @@ async function generateImage(prompt, originalText) {
   let finalPrompt = prompt;
   try {
     if (statusEl) statusEl.textContent = 'Menerjemahkan & menyempurnakan prompt...';
-    const translateRes = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+    const translateRes = await fetch('https://api.groq.com/openai/v1/chat/completions', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -12326,7 +12287,7 @@ async function generateImage(prompt, originalText) {
         'X-Title': 'Vexora AI'
       },
       body: JSON.stringify({
-        model: 'openai/gpt-4o-mini',
+        model: 'llama-3.3-70b-versatile',
         max_tokens: 120,
         messages: [{
           role: 'user',
@@ -13117,29 +13078,17 @@ async function fireSmartAPI(messages, hasImages = false, hasDoc = false) {
   abortController = new AbortController();
 
   // ── Determine active provider & endpoint ──
-  const provider = (typeof currentProvider !== 'undefined' ? currentProvider : null) || localStorage.getItem('vx_provider') || 'openrouter';
+  const provider = (typeof currentProvider !== 'undefined' ? currentProvider : null) || localStorage.getItem('vx_provider') || 'groq';
   const providerCfg = (typeof PROVIDERS !== 'undefined' && PROVIDERS[provider]) ? PROVIDERS[provider] : null;
-  const isOpenRouter = provider === 'openrouter';
-  const isGeminiNative = provider === 'gemini';
+  const isGroq = provider === 'groq';
 
-  // For Gemini native, build endpoint with model name + API key as query param
-  let apiEndpoint;
-  if (isGeminiNative) {
-    const geminiModel = getCurrentModeModel(currentMode);
-    apiEndpoint = 'https://generativelanguage.googleapis.com/v1beta/models/' + geminiModel + ':streamGenerateContent?alt=sse&key=' + apiKey;
-  } else {
-    apiEndpoint = providerCfg?.endpoint || 'https://openrouter.ai/api/v1/chat/completions';
-  }
+  const apiEndpoint = providerCfg?.endpoint || 'https://api.groq.com/openai/v1/chat/completions';
 
   // Build headers
-  const apiHeaders = { 'Content-Type': 'application/json' };
-  if (!isGeminiNative) {
-    apiHeaders['Authorization'] = 'Bearer ' + apiKey;
-  }
-  if (isOpenRouter) {
-    apiHeaders['HTTP-Referer'] = 'https://vexora.ai';
-    apiHeaders['X-Title'] = 'Vexora AI';
-  }
+  const apiHeaders = {
+    'Content-Type': 'application/json',
+    'Authorization': 'Bearer ' + apiKey,
+  };
 
   try {
     // ── Web Search: auto-detect, gunakan OpenRouter online model ──
@@ -13177,17 +13126,16 @@ async function fireSmartAPI(messages, hasImages = false, hasDoc = false) {
         // Fetch dari Perplexity via OpenRouter (sudah include web search real-time)
         let perplexityDone = false;
         try {
-          const wsRes = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+          // Web search via Groq (model yang dipilih user, bukan Perplexity)
+          const wsRes = await fetch('https://api.groq.com/openai/v1/chat/completions', {
             method: 'POST',
             signal: abortController.signal,
             headers: {
               'Content-Type': 'application/json',
               'Authorization': 'Bearer ' + apiKey,
-              'HTTP-Referer': 'https://vexora.ai',
-              'X-Title': 'Vexora AI'
             },
             body: JSON.stringify({
-              model: 'perplexity/sonar',
+              model: 'llama-3.3-70b-versatile',
               stream: false,
               max_tokens: 2000,
               messages: [
@@ -13313,7 +13261,7 @@ async function fireSmartAPI(messages, hasImages = false, hasDoc = false) {
       }
     }
 
-    const selectedModel = hasImages ? (typeof isPro === 'function' && isPro() ? 'anthropic/claude-sonnet-4-6' : 'openai/gpt-4o') : getCurrentModeModel(currentMode);
+    const selectedModel = getCurrentModeModel(currentMode);
 
     // ── Priority handled by rate limit system ──
     const proUser = typeof isPro === 'function' && isPro();
@@ -13330,38 +13278,18 @@ async function fireSmartAPI(messages, hasImages = false, hasDoc = false) {
       ? (effortLevel === 'maks' ? 32000 : Math.min(baseTokens * 2, 12000))
       : baseTokens;
 
-    // Gemini native menggunakan format berbeda dari OpenAI-compat
-    const useStream = true; // selalu streaming
+    const useStream = true;
 
-    // Build request body sesuai provider
-    let requestBody;
-    if (isGeminiNative) {
-      // Convert OpenAI-style messages ke Gemini format
-      const systemText = buildSystemPrompt() + (MODE_SYSTEM_EXTRA[currentMode] || MODE_SYSTEM_EXTRA['normal']) + getRealTimeContext() + webSearchContext;
-      const geminiContents = messages.map(m => ({
-        role: m.role === 'assistant' ? 'model' : 'user',
-        parts: [{ text: typeof m.content === 'string' ? m.content : (m.content?.find?.(c => c.type === 'text')?.text || '') }]
-      }));
-      requestBody = {
-        system_instruction: { parts: [{ text: systemText }] },
-        contents: geminiContents,
-        generationConfig: {
-          temperature: temperature,
-          maxOutputTokens: maxTokens,
-        }
-      };
-    } else {
-      requestBody = {
-        model: selectedModel,
-        stream: useStream,
-        temperature: temperature,
-        messages: [
-          { role: 'system', content: buildSystemPrompt() + (MODE_SYSTEM_EXTRA[currentMode] || MODE_SYSTEM_EXTRA['normal']) + getRealTimeContext() + webSearchContext },
-          ...messages
-        ],
-        max_tokens: maxTokens
-      };
-    }
+    const requestBody = {
+      model: selectedModel,
+      stream: useStream,
+      temperature: temperature,
+      messages: [
+        { role: 'system', content: buildSystemPrompt() + (MODE_SYSTEM_EXTRA[currentMode] || MODE_SYSTEM_EXTRA['normal']) + getRealTimeContext() + webSearchContext },
+        ...messages
+      ],
+      max_tokens: maxTokens
+    };
 
     const res = await fetch(apiEndpoint, {
       method: 'POST',
@@ -13378,18 +13306,14 @@ async function fireSmartAPI(messages, hasImages = false, hasDoc = false) {
       // 401 = API key salah/tidak valid
       if (res.status === 401 || res.status === 403) {
         removeTyping();
-        const errProvider = (typeof currentProvider !== 'undefined' ? currentProvider : null) || localStorage.getItem('vx_provider') || 'openrouter';
-        if (errProvider === 'gemini') {
-          appendMsg('ai', '🔑 API key Gemini tidak valid. Pastikan kamu sudah memasukkan API key dari <a href="https://aistudio.google.com/app/apikey" target="_blank" style="color:var(--accent)">Google AI Studio ↗</a> dan provider dipilih <b>Google Gemini</b>.');
-        } else {
-          appendMsg('ai', '🔑 API key tidak valid atau belum tersimpan dengan benar. Buka Pengaturan → API Key dan simpan ulang API key kamu.');
-        }
+        const errProvider = (typeof currentProvider !== 'undefined' ? currentProvider : null) || localStorage.getItem('vx_provider') || 'groq';
+        appendMsg('ai', '🔑 API key Groq tidak valid. Pastikan kamu sudah memasukkan API key dari <a href="https://console.groq.com/keys" target="_blank" style="color:var(--accent)">console.groq.com ↗</a>.');
         return;
       }
       // 402/429 = kredit habis atau rate limit
       if (res.status === 402 || res.status === 429 || /insufficient|credit|quota|billing|payment|out of credits|no credits|balance/i.test(errMsg)) {
         removeTyping();
-        appendMsg('ai', '💳 Kredit API key kamu mungkin sudah habis. Silahkan isi ulang kredit di OpenRouter atau buat API key baru.');
+        appendMsg('ai', '💳 Kuota atau rate limit API key Groq kamu mungkin sudah habis. Coba lagi sebentar atau buat API key baru di console.groq.com.');
         return;
       }
       if (data.error) throw new Error(errMsg || 'API Error ' + res.status);
@@ -13524,12 +13448,7 @@ async function fireSmartAPI(messages, hasImages = false, hasDoc = false) {
           if (payload === '[DONE]') { streamDone = true; continue; }
           try {
             const parsed = JSON.parse(payload);
-            // Support both OpenAI-compat delta AND Gemini native streaming format
-            const delta  = parsed?.choices?.[0]?.delta?.content
-              || parsed?.candidates?.[0]?.content?.parts?.[0]?.text
-              || null;
-            // Gemini signals done via finishReason
-            if (parsed?.candidates?.[0]?.finishReason) { if (!delta) { streamDone = true; continue; } }
+            const delta = parsed?.choices?.[0]?.delta?.content || null;
             if (delta) rawAccum += delta;
             if (parsed?.choices?.[0]?.finish_reason) streamDone = true;
           } catch (_) {}
@@ -13553,12 +13472,9 @@ async function fireSmartAPI(messages, hasImages = false, hasDoc = false) {
     // Deteksi token/kredit habis dari pesan error
     const eMsg = err.message || '';
     if (/401|403|unauthorized|invalid.*key|api key/i.test(eMsg)) {
-      const errProvider2 = (typeof currentProvider !== 'undefined' ? currentProvider : null) || localStorage.getItem('vx_provider') || 'openrouter';
-      appendMsg('ai', errProvider2 === 'gemini'
-        ? '🔑 API key Gemini tidak valid. Pastikan sudah pilih provider <b>Google Gemini</b> dan masukkan key dari Google AI Studio.'
-        : '🔑 API key tidak valid. Buka Pengaturan → API Key dan simpan ulang API key kamu.');
+      appendMsg('ai', '🔑 API key Groq tidak valid. Buka Pengaturan → API Key dan masukkan key dari <a href="https://console.groq.com/keys" target="_blank" style="color:var(--accent)">console.groq.com ↗</a>.');
     } else if (/insufficient|credit|quota|billing|payment|out of credits|no credits|balance|402|429/i.test(eMsg)) {
-      appendMsg('ai', '💳 Kredit API key kamu habis. Silahkan isi ulang kredit di OpenRouter atau buat API key baru.');
+      appendMsg('ai', '💳 Rate limit atau kuota Groq habis. Coba lagi sebentar atau buat API key baru di console.groq.com.');
     } else if (/fetch|network|failed to fetch/i.test(eMsg)) {
       appendMsg('ai', '🌐 Koneksi gagal. Periksa koneksi internet kamu dan coba lagi.');
     } else {
@@ -15054,7 +14970,7 @@ ${truncated}
 
   try {
     abortController = new AbortController();
-    const res = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+    const res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
       method: 'POST',
       signal: abortController.signal,
       headers: {
@@ -15378,9 +15294,9 @@ function loginSuccess(user) {
   // Load sessions for this user
   sessions = JSON.parse(localStorage.getItem('vx_sessions_' + user.key) || '[]');
   // Load API key for this user (provider-aware key, fallback to old format)
-  const _savedProvider2 = localStorage.getItem('vx_provider') || 'openrouter';
+  const _savedProvider2 = localStorage.getItem('vx_provider') || 'groq';
   apiKey = localStorage.getItem('vx_apikey_' + _savedProvider2 + '_' + user.key)
-        || (_savedProvider2 === 'openrouter' ? localStorage.getItem('vx_apikey_' + user.key) : '')
+        || (_savedProvider2 === 'groq' ? localStorage.getItem('vx_apikey_' + user.key) : '')
         || '';
   // Load memory for this user
   memories = JSON.parse(localStorage.getItem('vx_memory_' + user.key) || '[]');
@@ -15500,7 +15416,7 @@ function checkAuthOnLoad() {
     // Load sessions for this user
     sessions = JSON.parse(localStorage.getItem('vx_sessions_' + saved.key) || '[]');
     // Load API key for this user (provider-aware key, fallback to old format)
-    const _savedProvider1 = localStorage.getItem('vx_provider') || 'openrouter';
+    const _savedProvider1 = localStorage.getItem('vx_provider') || 'groq';
     apiKey = localStorage.getItem('vx_apikey_' + _savedProvider1 + '_' + saved.key)
           || localStorage.getItem('vx_apikey_' + saved.key)
           || '';
@@ -15871,7 +15787,7 @@ Invert: const d=ctx.getImageData(0,0,canvas.width,canvas.height);for(let i=0;i<d
     // Buat AbortController baru khusus untuk image edit (bebas dari abortController global)
     const editAbort = new AbortController();
 
-    const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+    const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
       method: 'POST',
       signal: editAbort.signal,
       headers: {
@@ -15881,7 +15797,7 @@ Invert: const d=ctx.getImageData(0,0,canvas.width,canvas.height);for(let i=0;i<d
         'X-Title': 'Vexora AI'
       },
       body: JSON.stringify({
-        model: 'openai/gpt-4o',
+        model: 'llama-3.3-70b-versatile',
         stream: false,
         max_tokens: 800,
         messages: [
@@ -16012,7 +15928,7 @@ async function applyCanvasEdit(imgObj, code) {
 // Get short AI description of what was done
 async function getEditDescription(imgObj, instruction, code) {
   try {
-    const r = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+    const r = await fetch('https://api.groq.com/openai/v1/chat/completions', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -16021,7 +15937,7 @@ async function getEditDescription(imgObj, instruction, code) {
         'X-Title': 'Vexora AI'
       },
       body: JSON.stringify({
-        model: 'openai/gpt-4o-mini',
+        model: 'llama-3.3-70b-versatile',
         max_tokens: 80,
         messages: [
           { role: 'system', content: 'Buat deskripsi singkat (max 1 kalimat, bahasa Indonesia) tentang efek edit gambar yang telah diterapkan. Langsung to the point, tidak perlu salam.' },
@@ -16943,15 +16859,10 @@ async function _fetchGlobalApiKey() {
     const res = await fetch(_FB_APIKEY_PATH);
     const data = await res.json();
     if (data && data.active && data.key) {
-      // Hanya override key jika user sedang pakai OpenRouter (provider default)
-      // Jika user pilih Gemini atau provider lain, jangan timpa key mereka
-      const activeProvider = (typeof currentProvider !== 'undefined' ? currentProvider : null)
-        || localStorage.getItem('vx_provider') || 'openrouter';
-      if (activeProvider === 'openrouter') {
-        apiKey = data.key;
-        const keyInput = document.getElementById('api-key-input');
-        if (keyInput) keyInput.value = apiKey;
-      }
+      // Override key dari admin (global key)
+      apiKey = data.key;
+      const keyInput = document.getElementById('api-key-input');
+      if (keyInput) keyInput.value = apiKey;
     }
     // Refresh admin UI if admin
     if (_isAdminUser()) _refreshAdminApiKeyUI(data);
@@ -17640,7 +17551,7 @@ Pertanyaan: `;
 async function runDeepThink(userMessage) {
   if (!deepThinkEnabled || !apiKey) return null;
   try {
-    const res = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+    const res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -17939,7 +17850,7 @@ async function runDeepResearchPlan(userMessage) {
   try {
     // Sanitize query untuk konteks pencarian DR yang relevan
     const safeDRQuery = (typeof sanitizeSearchQuery === 'function') ? await sanitizeSearchQuery(userMessage) : sanitizeSearchQueryFallback(userMessage).slice(0, 200);
-    const res = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+    const res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -18544,7 +18455,7 @@ function renderModelCards(providerKey) {
   if (!grid || !sel) return;
 
   const pro = typeof isPro === 'function' && isPro();
-  const models = (PROVIDERS[providerKey] || PROVIDERS['openrouter'])?.models || [];
+  const models = (PROVIDERS[providerKey] || PROVIDERS['groq'])?.models || [];
   const currentVal = sel.value || localStorage.getItem('vx_model') || '';
 
   // ── Tambah group separator antar kategori ──
@@ -18950,8 +18861,8 @@ document.addEventListener('DOMContentLoaded', () => {
     </div>
     <div class="admin-apikey-card">
       <div class="admin-apikey-label">🔑 API Key Global</div>
-      <div class="admin-apikey-desc">Set API key OpenRouter untuk semua user. Saat aktif, semua user otomatis pakai key ini tanpa perlu isi sendiri.</div>
-      <input type="password" class="admin-apikey-input" id="admin-apikey-input" placeholder="sk-or-v1-...">
+      <div class="admin-apikey-desc">Set API key Groq untuk semua user. Saat aktif, semua user otomatis pakai key ini tanpa perlu isi sendiri.</div>
+      <input type="password" class="admin-apikey-input" id="admin-apikey-input" placeholder="gsk_...">
       <div class="admin-apikey-row">
         <div class="admin-apikey-toggle-wrap">
           <span class="admin-apikey-toggle-label" id="admin-apikey-toggle-label">Global Key: OFF</span>
@@ -21181,8 +21092,8 @@ function closeSumberSheet() {
 
 // ══════════ MODEL PILL + SHEET ══════════
 function getActiveModelLabel() {
-  const val = localStorage.getItem('vx_model') || 'openai/gpt-4o-mini';
-  const models = (PROVIDERS['openrouter'] || {}).models || [];
+  const val = localStorage.getItem('vx_model') || 'llama-3.3-70b-versatile';
+  const models = (PROVIDERS['groq'] || {}).models || [];
   const found = models.find(m => m.value === val);
   return found ? found.label : val.split('/').pop();
 }
@@ -21225,9 +21136,9 @@ function closeModelSheet() {
 function renderModelSheetList() {
   const list = document.getElementById('model-sheet-list');
   if (!list) return;
-  const currentVal = localStorage.getItem('vx_model') || 'openai/gpt-4o-mini';
+  const currentVal = localStorage.getItem('vx_model') || 'llama-3.3-70b-versatile';
   const pro = typeof isPro === 'function' && isPro();
-  const models = (PROVIDERS['openrouter'] || {}).models || [];
+  const models = (PROVIDERS['groq'] || {}).models || [];
 
   list.innerHTML = '';
 
@@ -21306,7 +21217,7 @@ function makeSheetItem(m, currentVal, locked) {
       updateModelPill();
       closeModelSheet();
       // Tampilkan toast jika pilih Apex
-      if (m.value === 'anthropic/claude-opus-4-6') {
+      if (m.value === 'qwen-qwq-32b') {
         showApexWarningToast();
       }
     });
