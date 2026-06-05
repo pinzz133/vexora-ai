@@ -5073,6 +5073,26 @@ body.theme-gold    { --accent: #cc6b3d; --accent2: #84cc16; --accent-soft: rgba(
   backdrop-filter:blur(4px);
 }
 #api-modal.show { display:grid; }
+#api-modal .modal-box {
+  display:flex;
+  flex-direction:column;
+  max-height:88dvh;
+  overflow:hidden;
+}
+#api-modal .api-modal-scroll {
+  flex:1;
+  overflow-y:auto;
+  overflow-x:hidden;
+  padding-right:2px;
+}
+#api-modal .api-modal-scroll::-webkit-scrollbar { width:3px; }
+#api-modal .api-modal-scroll::-webkit-scrollbar-thumb { background:var(--border2);border-radius:3px; }
+#api-modal .api-modal-footer {
+  flex-shrink:0;
+  padding-top:12px;
+  border-top:1px solid var(--border);
+  margin-top:4px;
+}
 
 /* memory / name / sysprompt modals */
 #memory-modal,
@@ -7598,34 +7618,54 @@ body.login-active #overlay {
 
 <div id="api-modal">
   <div class="modal-box" style="max-width:460px">
-    <h3>⚙ Pengaturan API</h3>
-    <p style="margin-bottom:14px">Pilih provider AI dan masukkan API key kamu.</p>
+    <div class="api-modal-scroll">
+      <h3>⚙ Pengaturan API</h3>
+      <p style="margin-bottom:14px">Pilih provider AI dan masukkan API key kamu.</p>
 
-    <!-- Provider Selector -->
-    <div style="display:grid;grid-template-columns:1fr;gap:8px;margin-bottom:16px" id="provider-grid">
-      <button class="provider-card active" id="pcard-openrouter" onclick="selectProvider('openrouter')">
-        <div class="pcard-icon">🔀</div>
-        <div class="pcard-name">OpenRouter</div>
-        <div class="pcard-sub">100+ model</div>
-      </button>
+      <!-- Provider Selector -->
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:16px" id="provider-grid">
+        <button class="provider-card active" id="pcard-openrouter" onclick="selectProvider('openrouter')">
+          <div class="pcard-icon">🔀</div>
+          <div class="pcard-name">OpenRouter</div>
+          <div class="pcard-sub">100+ model</div>
+        </button>
+        <button class="provider-card" id="pcard-gemini" onclick="selectProvider('gemini')">
+          <div class="pcard-icon">✦</div>
+          <div class="pcard-name">Google Gemini</div>
+          <div class="pcard-sub">API langsung</div>
+        </button>
+      </div>
+
+      <!-- API Key info -->
+      <div id="provider-info" style="font-size:.72rem;color:var(--text2);margin-bottom:8px;padding:8px 10px;background:var(--surface2);border-radius:8px;border:1px solid var(--border2)"><a href="https://openrouter.ai/keys" target="_blank" style="color:var(--accent);text-decoration:none;">Buat API key di sini ↗</a></div>
+
+      <!-- API Key input -->
+      <input type="password" id="api-key-input" placeholder="Masukkan API key..."/>
+
+      <!-- Serper API Key -->
+      <div style="margin-top:14px;padding:14px 16px;background:var(--surface2);border:1px solid var(--border2);border-radius:12px">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
+          <span style="font-size:.95rem">🔍</span>
+          <span style="font-size:.85rem;font-weight:700;color:var(--text)">Serper API Key <span style="font-size:.7rem;font-weight:600;background:rgba(52,211,153,.15);color:#34d399;border:1px solid rgba(52,211,153,.3);border-radius:5px;padding:1px 6px;margin-left:4px">Opsional</span></span>
+        </div>
+        <div style="font-size:.72rem;color:var(--muted);margin-bottom:8px;line-height:1.5">Web search lebih akurat & real-time. Jika kosong, pakai DuckDuckGo/Jina (gratis). <a href="https://serper.dev" target="_blank" style="color:var(--accent);text-decoration:none">Dapatkan key di sini ↗</a></div>
+        <input type="password" id="serper-key-input" placeholder="Masukkan Serper API key..." style="width:100%;padding:9px 12px;background:var(--surface);border:1px solid var(--border2);border-radius:8px;color:var(--text);font-size:.82rem;box-sizing:border-box;outline:none;font-family:inherit"/>
+        <div id="serper-status" style="margin-top:6px;font-size:.7rem;color:var(--muted);min-height:14px"></div>
+      </div>
+
+      <!-- Model select — berubah sesuai provider -->
+      <div id="model-picker-wrap" style="margin-top:14px;margin-bottom:4px">
+        <div class="model-picker-label">🤖 Pilih Model AI</div>
+        <div id="model-cards-grid"></div>
+      </div>
+      <select id="model-select" style="display:none"></select>
     </div>
 
-    <!-- API Key info -->
-    <div id="provider-info" style="font-size:.72rem;color:var(--text2);margin-bottom:8px;padding:8px 10px;background:var(--surface2);border-radius:8px;border:1px solid var(--border2)"><a href="https://openrouter.ai/keys" target="_blank" style="color:var(--accent);text-decoration:none;">Buat API key di sini ↗</a></div>
-
-    <!-- API Key input -->
-    <input type="password" id="api-key-input" placeholder="Masukkan API key..."/>
-
-    <!-- Model select — berubah sesuai provider -->
-    <div id="model-picker-wrap" style="margin-top:8px;margin-bottom:14px">
-      <div class="model-picker-label">🤖 Pilih Model AI</div>
-      <div id="model-cards-grid"></div>
-    </div>
-    <select id="model-select" style="display:none"></select>
-
-    <div class="modal-btns" style="margin-top:14px">
-      <button class="btn-cancel" onclick="closeApiModal()">Batal</button>
-      <button class="btn-save" onclick="saveApiKey()">✅ Simpan</button>
+    <div class="api-modal-footer">
+      <div class="modal-btns">
+        <button class="btn-cancel" onclick="closeApiModal()">Batal</button>
+        <button class="btn-save" onclick="saveApiKey()">✅ Simpan</button>
+      </div>
     </div>
   </div>
 </div>
@@ -8018,6 +8058,14 @@ const MODEL_PRO_NORMAL  = 'anthropic/claude-sonnet-4-6';
 const MODEL_PRO_SMART   = 'anthropic/claude-opus-4-6';
 
 function getActiveModel(mode) {
+  // Jika provider adalah Gemini native, gunakan model Gemini yang dipilih user
+  const activeProvider = (typeof currentProvider !== 'undefined' ? currentProvider : null) || localStorage.getItem('vx_provider') || 'openrouter';
+  if (activeProvider === 'gemini') {
+    const savedModel = localStorage.getItem('vx_model');
+    const geminiModels = (typeof PROVIDERS !== 'undefined' && PROVIDERS['gemini']) ? PROVIDERS['gemini'].models : [];
+    const found = geminiModels.find(m => m.value === savedModel);
+    return found ? found.value : 'gemini-2.0-flash';
+  }
   const pro = typeof isPro === 'function' && isPro();
   if (mode === 'smart-pro') return pro ? MODEL_PRO_SMART  : MODEL_FREE_SMART;
   if (mode === 'normal-pro') return pro ? MODEL_PRO_NORMAL : MODEL_FREE_NORMAL;
@@ -8946,7 +8994,45 @@ function updateWebSearchBubble(results, query) {
   forceScrollBottom();
 }
 
+// ══════════ SERPER API HELPER ══════════
+function getSerperKey() {
+  const userKey = (typeof currentUser !== 'undefined' && currentUser) ? currentUser.key : 'guest';
+  return localStorage.getItem('vx_serper_key_' + userKey) || '';
+}
+
+async function doSerperSearch(query) {
+  const serperKey = getSerperKey();
+  if (!serperKey) return null;
+  try {
+    const res = await fetch('https://google.serper.dev/search', {
+      method: 'POST',
+      headers: { 'X-API-KEY': serperKey, 'Content-Type': 'application/json' },
+      signal: AbortSignal.timeout(10000),
+      body: JSON.stringify({ q: query, num: 6, hl: 'id', gl: 'id' })
+    });
+    if (!res.ok) return null;
+    const data = await res.json();
+    const results = [];
+    // answerBox / knowledgeGraph
+    if (data.answerBox?.answer) {
+      results.push({ title: data.answerBox.title || query, snippet: data.answerBox.answer.slice(0, 400), url: data.answerBox.link || '' });
+    }
+    if (data.knowledgeGraph?.description) {
+      results.push({ title: data.knowledgeGraph.title || query, snippet: data.knowledgeGraph.description.slice(0, 400), url: data.knowledgeGraph.website || '' });
+    }
+    (data.organic || []).slice(0, 6).forEach(r => {
+      results.push({ title: r.title || '', snippet: r.snippet || '', url: r.link || '' });
+    });
+    return results.slice(0, 6);
+  } catch(_) { return null; }
+}
+// ══════════ END SERPER API HELPER ══════════
+
 async function doWebSearch(query) {
+  // ── 0. Serper API (jika key tersedia) ──
+  const serperResults = await doSerperSearch(query);
+  if (serperResults && serperResults.length > 0) return serperResults;
+
   let results = [];
 
   // ── 1. Jina AI Search (gratis, CORS-friendly, no API key) ──
@@ -10764,6 +10850,25 @@ const PROVIDERS = {
       // ── PRO — Riset & Analisis ──
       { value: 'deepseek/deepseek-r1',                         label: 'DeepSeek R1 Full',      tag: 'PRO · Reasoning++', pro: true },
     ]
+  },
+  gemini: {
+    name: 'Google Gemini',
+    // endpoint dibangun secara dinamis berdasarkan model yang dipilih
+    endpoint: 'https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent',
+    keyPrefix: 'AIza',
+    keyPlaceholder: 'AIzaSy...',
+    info: '<a href="https://aistudio.google.com/app/apikey" target="_blank" style="color:var(--accent);text-decoration:none;">Dapatkan API key Gemini gratis di sini ↗</a>',
+    models: [
+      // ── GRATIS ──
+      { value: 'gemini-2.0-flash',          label: 'Gemini 2.0 Flash',       tag: 'Gratis · Cepat' },
+      { value: 'gemini-2.0-flash-lite',     label: 'Gemini 2.0 Flash Lite',  tag: 'Gratis · Ringan' },
+      { value: 'gemini-1.5-flash',          label: 'Gemini 1.5 Flash',       tag: 'Gratis · Stabil' },
+      { value: 'gemini-1.5-flash-8b',       label: 'Gemini 1.5 Flash-8B',    tag: 'Gratis · Ultra Ringan' },
+      // ── PRO ──
+      { value: 'gemini-2.5-pro',            label: 'Gemini 2.5 Pro',         tag: 'Terbaik · Reasoning', pro: true },
+      { value: 'gemini-2.5-flash',          label: 'Gemini 2.5 Flash',       tag: 'Cepat · Canggih', pro: true },
+      { value: 'gemini-1.5-pro',            label: 'Gemini 1.5 Pro',         tag: 'PRO · Stabil', pro: true },
+    ]
   }
 }
 // ── Default model berdasarkan status PRO ──
@@ -10862,6 +10967,16 @@ function selectProvider(p) {
       }
     }
   }
+  // update provider info link
+  const provInfoEl = document.getElementById('provider-info');
+  if (provInfoEl) {
+    const infoHtml = PROVIDERS[p]?.info || '';
+    if (p === 'gemini') {
+      provInfoEl.innerHTML = infoHtml || '<a href="https://aistudio.google.com/app/apikey" target="_blank" style="color:var(--accent);text-decoration:none;">Dapatkan API key Gemini gratis di Google AI Studio ↗</a>';
+    } else {
+      provInfoEl.innerHTML = infoHtml || '<a href="https://openrouter.ai/keys" target="_blank" style="color:var(--accent);text-decoration:none;">Buat API key di sini ↗</a>';
+    }
+  }
   // load saved key for this provider+user
   if (keyInp) {
     const userKey = (typeof currentUser !== 'undefined' && currentUser) ? currentUser.key : 'guest';
@@ -10889,6 +11004,17 @@ function openApiModal() {
       });
     }
   }
+  // Load Serper key
+  const serperInp = document.getElementById('serper-key-input');
+  const serperStatus = document.getElementById('serper-status');
+  if (serperInp) {
+    const userKey2 = (typeof currentUser !== 'undefined' && currentUser) ? currentUser.key : 'guest';
+    const savedSerper = localStorage.getItem('vx_serper_key_' + userKey2) || '';
+    serperInp.value = savedSerper;
+    if (serperStatus) {
+      serperStatus.textContent = savedSerper ? '\u2705 Serper aktif \u2014 web search menggunakan Serper API' : '';
+    }
+  }
 }
 function closeApiModal() { document.getElementById('api-modal').classList.remove('show'); }
 
@@ -10900,6 +11026,17 @@ function saveApiKey() {
   localStorage.setItem(pKeyName, key);
   localStorage.setItem('vx_provider', currentProvider);
   localStorage.setItem('vx_model', model);
+  // save Serper key
+  const serperKeyInp = document.getElementById('serper-key-input');
+  if (serperKeyInp) {
+    const serperKey = serperKeyInp.value.trim();
+    const userKey2 = (typeof currentUser !== 'undefined' && currentUser) ? currentUser.key : 'guest';
+    if (serperKey) {
+      localStorage.setItem('vx_serper_key_' + userKey2, serperKey);
+    } else {
+      localStorage.removeItem('vx_serper_key_' + userKey2);
+    }
+  }
   // set global apiKey
   apiKey = key;
   closeApiModal();
@@ -12982,14 +13119,23 @@ async function fireSmartAPI(messages, hasImages = false, hasDoc = false) {
   // ── Determine active provider & endpoint ──
   const provider = (typeof currentProvider !== 'undefined' ? currentProvider : null) || localStorage.getItem('vx_provider') || 'openrouter';
   const providerCfg = (typeof PROVIDERS !== 'undefined' && PROVIDERS[provider]) ? PROVIDERS[provider] : null;
-  const apiEndpoint = providerCfg?.endpoint || 'https://openrouter.ai/api/v1/chat/completions';
   const isOpenRouter = provider === 'openrouter';
+  const isGeminiNative = provider === 'gemini';
+
+  // For Gemini native, build endpoint with model name + API key as query param
+  let apiEndpoint;
+  if (isGeminiNative) {
+    const geminiModel = getCurrentModeModel(currentMode);
+    apiEndpoint = 'https://generativelanguage.googleapis.com/v1beta/models/' + geminiModel + ':streamGenerateContent?alt=sse&key=' + apiKey;
+  } else {
+    apiEndpoint = providerCfg?.endpoint || 'https://openrouter.ai/api/v1/chat/completions';
+  }
 
   // Build headers
-  const apiHeaders = {
-    'Content-Type': 'application/json',
-    'Authorization': 'Bearer ' + apiKey,
-  };
+  const apiHeaders = { 'Content-Type': 'application/json' };
+  if (!isGeminiNative) {
+    apiHeaders['Authorization'] = 'Bearer ' + apiKey;
+  }
   if (isOpenRouter) {
     apiHeaders['HTTP-Referer'] = 'https://vexora.ai';
     apiHeaders['X-Title'] = 'Vexora AI';
@@ -13184,14 +13330,28 @@ async function fireSmartAPI(messages, hasImages = false, hasDoc = false) {
       ? (effortLevel === 'maks' ? 32000 : Math.min(baseTokens * 2, 12000))
       : baseTokens;
 
-    // Gemini via OpenAI-compat endpoint tidak support streaming dengan stabil
-    const useStream = provider !== 'gemini';
+    // Gemini native menggunakan format berbeda dari OpenAI-compat
+    const useStream = true; // selalu streaming
 
-    const res = await fetch(apiEndpoint, {
-      method: 'POST',
-      signal: abortController.signal,
-      headers: apiHeaders,
-      body: JSON.stringify({
+    // Build request body sesuai provider
+    let requestBody;
+    if (isGeminiNative) {
+      // Convert OpenAI-style messages ke Gemini format
+      const systemText = buildSystemPrompt() + (MODE_SYSTEM_EXTRA[currentMode] || MODE_SYSTEM_EXTRA['normal']) + getRealTimeContext() + webSearchContext;
+      const geminiContents = messages.map(m => ({
+        role: m.role === 'assistant' ? 'model' : 'user',
+        parts: [{ text: typeof m.content === 'string' ? m.content : (m.content?.find?.(c => c.type === 'text')?.text || '') }]
+      }));
+      requestBody = {
+        system_instruction: { parts: [{ text: systemText }] },
+        contents: geminiContents,
+        generationConfig: {
+          temperature: temperature,
+          maxOutputTokens: maxTokens,
+        }
+      };
+    } else {
+      requestBody = {
         model: selectedModel,
         stream: useStream,
         temperature: temperature,
@@ -13200,7 +13360,14 @@ async function fireSmartAPI(messages, hasImages = false, hasDoc = false) {
           ...messages
         ],
         max_tokens: maxTokens
-      })
+      };
+    }
+
+    const res = await fetch(apiEndpoint, {
+      method: 'POST',
+      signal: abortController.signal,
+      headers: apiHeaders,
+      body: JSON.stringify(requestBody)
     });
 
     if (!res.ok) {
@@ -13352,7 +13519,12 @@ async function fireSmartAPI(messages, hasImages = false, hasDoc = false) {
           if (payload === '[DONE]') { streamDone = true; continue; }
           try {
             const parsed = JSON.parse(payload);
-            const delta  = parsed?.choices?.[0]?.delta?.content;
+            // Support both OpenAI-compat delta AND Gemini native streaming format
+            const delta  = parsed?.choices?.[0]?.delta?.content
+              || parsed?.candidates?.[0]?.content?.parts?.[0]?.text
+              || null;
+            // Gemini signals done via finishReason
+            if (parsed?.candidates?.[0]?.finishReason) { if (!delta) { streamDone = true; continue; } }
             if (delta) rawAccum += delta;
             if (parsed?.choices?.[0]?.finish_reason) streamDone = true;
           } catch (_) {}
@@ -19125,6 +19297,11 @@ function getV2Domain(url) {
 async function doWebSearchV2(query) {
   // Sanitize query sebelum dikirim ke semua sumber pencarian
   const safeQuery = (typeof sanitizeSearchQuery === 'function') ? await sanitizeSearchQuery(query) : sanitizeSearchQueryFallback(query).slice(0, 120);
+
+  // ── 0. Serper API (jika key tersedia, pakai ini dan skip sumber lain) ──
+  const serperRes = await doSerperSearch(safeQuery);
+  if (serperRes && serperRes.length > 0) return serperRes;
+
   const results = [];
   const seen = new Set();
 
