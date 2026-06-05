@@ -8043,6 +8043,22 @@ function apiKeyStorageKey() {
   const provider = localStorage.getItem('vx_provider') || 'groq';
   return 'vx_apikey_' + provider + '_' + u;
 }
+
+// ── Migrasi provider lama → groq ──
+(function migrateToGroq() {
+  const savedProvider = localStorage.getItem('vx_provider');
+  if (savedProvider && savedProvider !== 'groq') {
+    // User punya key lama (openrouter/gemini), paksa reset ke groq
+    localStorage.setItem('vx_provider', 'groq');
+    // Hapus model lama yang tidak kompatibel dengan groq
+    const savedModel = localStorage.getItem('vx_model') || '';
+    const groqModels = ['llama-3.3-70b-versatile','llama-3.1-8b-instant','llama3-8b-8192','gemma2-9b-it','mixtral-8x7b-32768','llama-3.3-70b-specdec','llama3-70b-8192','llama-3.2-90b-vision-preview','deepseek-r1-distill-llama-70b','qwen-qwq-32b'];
+    if (!groqModels.includes(savedModel)) {
+      localStorage.setItem('vx_model', 'llama-3.3-70b-versatile');
+    }
+  }
+})();
+
 let apiKey = '';
 let model = localStorage.getItem('vx_model') || 'llama-3.3-70b-versatile';
 
@@ -13307,7 +13323,7 @@ async function fireSmartAPI(messages, hasImages = false, hasDoc = false) {
       if (res.status === 401 || res.status === 403) {
         removeTyping();
         const errProvider = (typeof currentProvider !== 'undefined' ? currentProvider : null) || localStorage.getItem('vx_provider') || 'groq';
-        appendMsg('ai', '🔑 API key Groq tidak valid. Pastikan kamu sudah memasukkan API key dari <a href="https://console.groq.com/keys" target="_blank" style="color:var(--accent)">console.groq.com ↗</a>.');
+        appendMsg('ai', '🔑 API key Groq tidak valid. Pastikan kamu sudah memasukkan API key (gsk_...) dari console.groq.com/keys dan provider dipilih Groq.');
         return;
       }
       // 402/429 = kredit habis atau rate limit
@@ -13472,7 +13488,7 @@ async function fireSmartAPI(messages, hasImages = false, hasDoc = false) {
     // Deteksi token/kredit habis dari pesan error
     const eMsg = err.message || '';
     if (/401|403|unauthorized|invalid.*key|api key/i.test(eMsg)) {
-      appendMsg('ai', '🔑 API key Groq tidak valid. Buka Pengaturan → API Key dan masukkan key dari <a href="https://console.groq.com/keys" target="_blank" style="color:var(--accent)">console.groq.com ↗</a>.');
+      appendMsg('ai', '🔑 API key Groq tidak valid. Buka Pengaturan → API Key dan masukkan key (gsk_...) dari console.groq.com/keys');
     } else if (/insufficient|credit|quota|billing|payment|out of credits|no credits|balance|402|429/i.test(eMsg)) {
       appendMsg('ai', '💳 Rate limit atau kuota Groq habis. Coba lagi sebentar atau buat API key baru di console.groq.com.');
     } else if (/fetch|network|failed to fetch/i.test(eMsg)) {
