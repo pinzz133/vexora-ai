@@ -7623,11 +7623,21 @@ body.login-active #overlay {
       <p style="margin-bottom:14px">Pilih provider AI dan masukkan API key kamu.</p>
 
       <!-- Provider Selector -->
-      <div style="display:grid;grid-template-columns:1fr;gap:8px;margin-bottom:16px" id="provider-grid">
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:16px" id="provider-grid">
         <button class="provider-card active" id="pcard-groq" onclick="selectProvider('groq')">
           <div class="pcard-icon">⚡</div>
           <div class="pcard-name">Groq</div>
           <div class="pcard-sub">Ultra cepat · Gratis</div>
+        </button>
+        <button class="provider-card" id="pcard-cerebras" onclick="selectProvider('cerebras')">
+          <div class="pcard-icon">🧠</div>
+          <div class="pcard-name">Cerebras</div>
+          <div class="pcard-sub">Tercepat · Gratis</div>
+        </button>
+        <button class="provider-card" id="pcard-sambanova" onclick="selectProvider('sambanova')">
+          <div class="pcard-icon">🚀</div>
+          <div class="pcard-name">SambaNova</div>
+          <div class="pcard-sub">405B · Gratis</div>
         </button>
       </div>
 
@@ -8045,12 +8055,12 @@ function apiKeyStorageKey() {
 }
 
 // ── Migrasi provider lama → groq ──
-(function migrateToGroq() {
+(function migrateProvider() {
+  const validProviders = ['groq', 'cerebras', 'sambanova'];
   const savedProvider = localStorage.getItem('vx_provider');
-  if (savedProvider && savedProvider !== 'groq') {
-    // User punya key lama (openrouter/gemini), paksa reset ke groq
+  if (savedProvider && !validProviders.includes(savedProvider)) {
+    // Provider lama (openrouter/gemini) → reset ke groq
     localStorage.setItem('vx_provider', 'groq');
-    // Hapus model lama yang tidak kompatibel dengan groq
     const savedModel = localStorage.getItem('vx_model') || '';
     const groqModels = ['llama-3.3-70b-versatile','llama-3.1-8b-instant','llama3-8b-8192','gemma2-9b-it','mixtral-8x7b-32768','llama-3.3-70b-specdec','llama3-70b-8192','llama-3.2-90b-vision-preview','deepseek-r1-distill-llama-70b','qwen-qwq-32b'];
     if (!groqModels.includes(savedModel)) {
@@ -10849,6 +10859,35 @@ const PROVIDERS = {
       { value: 'llama-3.2-90b-vision-preview',   label: 'Llama 3.2 90B Vision',   tag: 'PRO · Multimodal', pro: true },
       { value: 'deepseek-r1-distill-llama-70b',  label: 'DeepSeek R1 Llama 70B',  tag: 'PRO · Reasoning', pro: true },
       { value: 'qwen-qwq-32b',                   label: 'Qwen QwQ 32B',           tag: 'PRO · Analisis', pro: true },
+    ]
+  },
+  cerebras: {
+    name: 'Cerebras',
+    endpoint: 'https://api.cerebras.ai/v1/chat/completions',
+    keyPrefix: 'csk-',
+    keyPlaceholder: 'csk-...',
+    info: '<a href="https://cloud.cerebras.ai" target="_blank" style="color:var(--accent);text-decoration:none;">Dapatkan API key Cerebras gratis di sini ↗</a>',
+    models: [
+      { value: 'llama-3.3-70b',   label: 'Llama 3.3 70B',  tag: 'Gratis · Tercepat di dunia' },
+      { value: 'llama3.1-8b',     label: 'Llama 3.1 8B',   tag: 'Gratis · Ultra Ringan' },
+      { value: 'llama3.1-70b',    label: 'Llama 3.1 70B',  tag: 'Gratis · Kuat' },
+      { value: 'qwen-3-32b',      label: 'Qwen 3 32B',     tag: 'Gratis · Reasoning' },
+    ]
+  },
+  sambanova: {
+    name: 'SambaNova',
+    endpoint: 'https://api.sambanova.ai/v1/chat/completions',
+    keyPrefix: '',
+    keyPlaceholder: 'Masukkan SambaNova API key...',
+    info: '<a href="https://cloud.sambanova.ai/apis" target="_blank" style="color:var(--accent);text-decoration:none;">Dapatkan API key SambaNova gratis di sini ↗</a>',
+    models: [
+      { value: 'Meta-Llama-3.3-70B-Instruct',         label: 'Llama 3.3 70B',       tag: 'Gratis · Serba bisa' },
+      { value: 'Meta-Llama-3.1-8B-Instruct',          label: 'Llama 3.1 8B',        tag: 'Gratis · Cepat' },
+      { value: 'Meta-Llama-3.2-3B-Instruct',          label: 'Llama 3.2 3B',        tag: 'Gratis · Ringan' },
+      { value: 'DeepSeek-R1-Distill-Llama-70B',       label: 'DeepSeek R1 70B',     tag: 'Gratis · Reasoning' },
+      { value: 'Qwen2.5-72B-Instruct',                label: 'Qwen 2.5 72B',        tag: 'Gratis · Analisis' },
+      { value: 'Meta-Llama-3.1-405B-Instruct',        label: 'Llama 3.1 405B',      tag: 'PRO · Terbesar', pro: true },
+      { value: 'DeepSeek-V3-0324',                    label: 'DeepSeek V3',         tag: 'PRO · Coding', pro: true },
     ]
   }
 }
@@ -21109,7 +21148,8 @@ function closeSumberSheet() {
 // ══════════ MODEL PILL + SHEET ══════════
 function getActiveModelLabel() {
   const val = localStorage.getItem('vx_model') || 'llama-3.3-70b-versatile';
-  const models = (PROVIDERS['groq'] || {}).models || [];
+  const provider = localStorage.getItem('vx_provider') || 'groq';
+  const models = (PROVIDERS[provider] || PROVIDERS['groq'] || {}).models || [];
   const found = models.find(m => m.value === val);
   return found ? found.label : val.split('/').pop();
 }
@@ -21154,7 +21194,8 @@ function renderModelSheetList() {
   if (!list) return;
   const currentVal = localStorage.getItem('vx_model') || 'llama-3.3-70b-versatile';
   const pro = typeof isPro === 'function' && isPro();
-  const models = (PROVIDERS['groq'] || {}).models || [];
+  const provider = localStorage.getItem('vx_provider') || 'groq';
+  const models = (PROVIDERS[provider] || PROVIDERS['groq'] || {}).models || [];
 
   list.innerHTML = '';
 
