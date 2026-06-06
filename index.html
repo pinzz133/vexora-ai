@@ -10956,6 +10956,7 @@ let currentProvider = 'groq';
 
 function selectProvider(p) {
   currentProvider = p;
+  localStorage.setItem('vx_provider', p);
   // update card UI
   document.querySelectorAll('.provider-card').forEach(c => c.classList.remove('active'));
   const card = document.getElementById('pcard-' + p);
@@ -11006,7 +11007,8 @@ function selectProvider(p) {
 // ─── API Modal ───
 function openApiModal() {
   document.getElementById('api-modal').classList.add('show');
-  selectProvider('groq');
+  const savedProvider = localStorage.getItem('vx_provider') || 'groq';
+  selectProvider(savedProvider);
   // restore saved model selection in cards
   const savedModel = localStorage.getItem('vx_model') || '';
   const sel = document.getElementById('model-select');
