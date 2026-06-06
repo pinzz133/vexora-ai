@@ -7623,21 +7623,11 @@ body.login-active #overlay {
       <p style="margin-bottom:14px">Pilih provider AI dan masukkan API key kamu.</p>
 
       <!-- Provider Selector -->
-      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:16px" id="provider-grid">
-        <button class="provider-card active" id="pcard-groq" onclick="selectProvider('groq')">
-          <div class="pcard-icon">⚡</div>
-          <div class="pcard-name">Groq</div>
-          <div class="pcard-sub">Ultra cepat · Gratis</div>
-        </button>
-        <button class="provider-card" id="pcard-cerebras" onclick="selectProvider('cerebras')">
+      <div style="display:grid;grid-template-columns:1fr;gap:8px;margin-bottom:16px" id="provider-grid">
+        <button class="provider-card active" id="pcard-cerebras" onclick="selectProvider('cerebras')">
           <div class="pcard-icon">🧠</div>
           <div class="pcard-name">Cerebras</div>
-          <div class="pcard-sub">Tercepat · Gratis</div>
-        </button>
-        <button class="provider-card" id="pcard-sambanova" onclick="selectProvider('sambanova')">
-          <div class="pcard-icon">🚀</div>
-          <div class="pcard-name">SambaNova</div>
-          <div class="pcard-sub">405B · Gratis</div>
+          <div class="pcard-sub">Tercepat di dunia · Gratis</div>
         </button>
       </div>
 
@@ -8050,17 +8040,16 @@ let sessions = [];
 let activeId  = null;
 function apiKeyStorageKey() {
   const u = (typeof currentUser !== 'undefined' && currentUser) ? currentUser.key : 'guest';
-  const provider = localStorage.getItem('vx_provider') || 'groq';
+  const provider = localStorage.getItem('vx_provider') || 'cerebras';
   return 'vx_apikey_' + provider + '_' + u;
 }
 
 // ── Migrasi provider lama → groq ──
 (function migrateProvider() {
-  const validProviders = ['groq', 'cerebras', 'sambanova'];
+  const validProviders = ['cerebras'];
   const savedProvider = localStorage.getItem('vx_provider');
-  if (savedProvider && !validProviders.includes(savedProvider)) {
-    // Provider lama (openrouter/gemini) → reset ke groq
-    localStorage.setItem('vx_provider', 'groq');
+  if (!savedProvider || !validProviders.includes(savedProvider)) {
+    localStorage.setItem('vx_provider', 'cerebras');
     const savedModel = localStorage.getItem('vx_model') || '';
     const groqModels = ['llama-3.3-70b-versatile','llama-3.1-8b-instant','llama3-8b-8192','gemma2-9b-it','mixtral-8x7b-32768','llama-3.3-70b-specdec','llama3-70b-8192','llama-3.2-90b-vision-preview','deepseek-r1-distill-llama-70b','qwen-qwq-32b'];
     if (!groqModels.includes(savedModel)) {
@@ -8080,7 +8069,7 @@ const MODEL_PRO_SMART   = 'qwen-qwq-32b';
 
 function getActiveModel(mode) {
   const savedModel = localStorage.getItem('vx_model');
-  const groqModels = (typeof PROVIDERS !== 'undefined' && PROVIDERS['groq']) ? PROVIDERS['groq'].models : [];
+  const groqModels = (typeof PROVIDERS !== 'undefined' && PROVIDERS['cerebras']) ? PROVIDERS['cerebras'].models : [];
   const found = groqModels.find(m => m.value === savedModel);
   if (found) return found.value;
   const pro = typeof isPro === 'function' && isPro();
@@ -10082,14 +10071,14 @@ function forceScrollBottom() {
 // ─── Init ───
 function init() {
   // restore provider & populate model list first
-  currentProvider = localStorage.getItem('vx_provider') || 'groq';
+  currentProvider = localStorage.getItem('vx_provider') || 'cerebras';
   selectProvider(currentProvider);
   document.getElementById('api-key-input').value = apiKey;
   const savedModel = localStorage.getItem('vx_model') || '';
   const selEl = document.getElementById('model-select');
   if (selEl && savedModel) { const opt = selEl.querySelector(`option[value="${savedModel}"]`); if (opt) selEl.value = savedModel; }
   // restore provider
-  currentProvider = localStorage.getItem('vx_provider') || 'groq';
+  currentProvider = localStorage.getItem('vx_provider') || 'cerebras';
   // sync sidebar visual state on load
   if (!sidebarOpen) {
     sidebar.classList.add('collapsed');
@@ -10840,27 +10829,6 @@ function exportChat() {
 
 // ─── Multi-Provider API System ───
 const PROVIDERS = {
-  groq: {
-    name: 'Groq',
-    endpoint: 'https://api.groq.com/openai/v1/chat/completions',
-    keyPrefix: 'gsk_',
-    keyPlaceholder: 'gsk_...',
-    info: '<a href="https://console.groq.com/keys" target="_blank" style="color:var(--accent);text-decoration:none;">Dapatkan API key Groq gratis di sini ↗</a>',
-    models: [
-      // ── Gratis (Free Tier) ──
-      { value: 'llama-3.3-70b-versatile',        label: 'Llama 3.3 70B',          tag: 'Gratis · Serba bisa' },
-      { value: 'llama-3.1-8b-instant',           label: 'Llama 3.1 8B Instant',   tag: 'Gratis · Ultra Cepat' },
-      { value: 'llama3-8b-8192',                 label: 'Llama 3 8B',             tag: 'Gratis · Ringan' },
-      { value: 'gemma2-9b-it',                   label: 'Gemma 2 9B',             tag: 'Gratis · Google' },
-      { value: 'mixtral-8x7b-32768',             label: 'Mixtral 8x7B',           tag: 'Gratis · Teks panjang' },
-      // ── PRO ──
-      { value: 'llama-3.3-70b-specdec',          label: 'Llama 3.3 70B SpecDec',  tag: 'PRO · Reasoning cepat', pro: true },
-      { value: 'llama3-70b-8192',                label: 'Llama 3 70B',            tag: 'PRO · Kuat', pro: true },
-      { value: 'llama-3.2-90b-vision-preview',   label: 'Llama 3.2 90B Vision',   tag: 'PRO · Multimodal', pro: true },
-      { value: 'deepseek-r1-distill-llama-70b',  label: 'DeepSeek R1 Llama 70B',  tag: 'PRO · Reasoning', pro: true },
-      { value: 'qwen-qwq-32b',                   label: 'Qwen QwQ 32B',           tag: 'PRO · Analisis', pro: true },
-    ]
-  },
   cerebras: {
     name: 'Cerebras',
     endpoint: 'https://api.cerebras.ai/v1/chat/completions',
@@ -10873,29 +10841,13 @@ const PROVIDERS = {
       { value: 'llama3.1-70b',    label: 'Llama 3.1 70B',  tag: 'Gratis · Kuat' },
       { value: 'qwen-3-32b',      label: 'Qwen 3 32B',     tag: 'Gratis · Reasoning' },
     ]
-  },
-  sambanova: {
-    name: 'SambaNova',
-    endpoint: 'https://api.sambanova.ai/v1/chat/completions',
-    keyPrefix: '',
-    keyPlaceholder: 'Masukkan SambaNova API key...',
-    info: '<a href="https://cloud.sambanova.ai/apis" target="_blank" style="color:var(--accent);text-decoration:none;">Dapatkan API key SambaNova gratis di sini ↗</a>',
-    models: [
-      { value: 'Meta-Llama-3.3-70B-Instruct',         label: 'Llama 3.3 70B',       tag: 'Gratis · Serba bisa' },
-      { value: 'Meta-Llama-3.1-8B-Instruct',          label: 'Llama 3.1 8B',        tag: 'Gratis · Cepat' },
-      { value: 'Meta-Llama-3.2-3B-Instruct',          label: 'Llama 3.2 3B',        tag: 'Gratis · Ringan' },
-      { value: 'DeepSeek-R1-Distill-Llama-70B',       label: 'DeepSeek R1 70B',     tag: 'Gratis · Reasoning' },
-      { value: 'Qwen2.5-72B-Instruct',                label: 'Qwen 2.5 72B',        tag: 'Gratis · Analisis' },
-      { value: 'Meta-Llama-3.1-405B-Instruct',        label: 'Llama 3.1 405B',      tag: 'PRO · Terbesar', pro: true },
-      { value: 'DeepSeek-V3-0324',                    label: 'DeepSeek V3',         tag: 'PRO · Coding', pro: true },
-    ]
   }
 }
 // ── Default model berdasarkan status PRO ──
 // Non-PRO / akun baru  → GPT-4o Mini (gratis)
 // PRO                  → DeepSeek Coder V2 (PRO · Coding)
-const MODEL_DEFAULT_FREE = 'llama-3.3-70b-versatile';
-const MODEL_DEFAULT_PRO  = 'llama-3.3-70b-specdec';
+const MODEL_DEFAULT_FREE = 'llama-3.3-70b';
+const MODEL_DEFAULT_PRO  = 'llama-3.3-70b';
 
 function applyDefaultModelByProStatus(forceOverride) {
   const pro = typeof isPro === 'function' && isPro();
@@ -10907,7 +10859,7 @@ function applyDefaultModelByProStatus(forceOverride) {
     const saved = localStorage.getItem('vx_model');
     // Kalau ada pilihan tersimpan dan masih valid (tidak locked untuk status saat ini), pakai itu
     if (saved) {
-      const provModels = (PROVIDERS['groq'] || {}).models || [];
+      const provModels = (PROVIDERS['cerebras'] || {}).models || [];
       const savedMeta = provModels.find(m => m.value === saved);
       const isProModel = savedMeta && (savedMeta.pro === true || savedMeta.label.includes('PRO'));
       // Kalau akun non-PRO dan model tersimpan adalah PRO model → override ke default free
@@ -10952,11 +10904,10 @@ function applyDefaultModelByProStatus(forceOverride) {
   }
 }
 
-let currentProvider = 'groq';
+let currentProvider = 'cerebras';
 
 function selectProvider(p) {
   currentProvider = p;
-  localStorage.setItem('vx_provider', p);
   // update card UI
   document.querySelectorAll('.provider-card').forEach(c => c.classList.remove('active'));
   const card = document.getElementById('pcard-' + p);
@@ -11007,8 +10958,7 @@ function selectProvider(p) {
 // ─── API Modal ───
 function openApiModal() {
   document.getElementById('api-modal').classList.add('show');
-  const savedProvider = localStorage.getItem('vx_provider') || 'groq';
-  selectProvider(savedProvider);
+  selectProvider('cerebras');
   // restore saved model selection in cards
   const savedModel = localStorage.getItem('vx_model') || '';
   const sel = document.getElementById('model-select');
@@ -13135,7 +13085,7 @@ async function fireSmartAPI(messages, hasImages = false, hasDoc = false) {
   abortController = new AbortController();
 
   // ── Determine active provider & endpoint ──
-  const provider = (typeof currentProvider !== 'undefined' ? currentProvider : null) || localStorage.getItem('vx_provider') || 'groq';
+  const provider = (typeof currentProvider !== 'undefined' ? currentProvider : null) || localStorage.getItem('vx_provider') || 'cerebras';
   const providerCfg = (typeof PROVIDERS !== 'undefined' && PROVIDERS[provider]) ? PROVIDERS[provider] : null;
   const isGroq = provider === 'groq';
 
@@ -13363,7 +13313,7 @@ async function fireSmartAPI(messages, hasImages = false, hasDoc = false) {
       // 401 = API key salah/tidak valid
       if (res.status === 401 || res.status === 403) {
         removeTyping();
-        const errProvider = (typeof currentProvider !== 'undefined' ? currentProvider : null) || localStorage.getItem('vx_provider') || 'groq';
+        const errProvider = (typeof currentProvider !== 'undefined' ? currentProvider : null) || localStorage.getItem('vx_provider') || 'cerebras';
         appendMsg('ai', '🔑 API key Groq tidak valid. Pastikan kamu sudah memasukkan API key (gsk_...) dari console.groq.com/keys dan provider dipilih Groq.');
         return;
       }
@@ -15351,7 +15301,7 @@ function loginSuccess(user) {
   // Load sessions for this user
   sessions = JSON.parse(localStorage.getItem('vx_sessions_' + user.key) || '[]');
   // Load API key for this user (provider-aware key, fallback to old format)
-  const _savedProvider2 = localStorage.getItem('vx_provider') || 'groq';
+  const _savedProvider2 = localStorage.getItem('vx_provider') || 'cerebras';
   apiKey = localStorage.getItem('vx_apikey_' + _savedProvider2 + '_' + user.key)
         || (_savedProvider2 === 'groq' ? localStorage.getItem('vx_apikey_' + user.key) : '')
         || '';
@@ -15473,7 +15423,7 @@ function checkAuthOnLoad() {
     // Load sessions for this user
     sessions = JSON.parse(localStorage.getItem('vx_sessions_' + saved.key) || '[]');
     // Load API key for this user (provider-aware key, fallback to old format)
-    const _savedProvider1 = localStorage.getItem('vx_provider') || 'groq';
+    const _savedProvider1 = localStorage.getItem('vx_provider') || 'cerebras';
     apiKey = localStorage.getItem('vx_apikey_' + _savedProvider1 + '_' + saved.key)
           || localStorage.getItem('vx_apikey_' + saved.key)
           || '';
@@ -18512,7 +18462,7 @@ function renderModelCards(providerKey) {
   if (!grid || !sel) return;
 
   const pro = typeof isPro === 'function' && isPro();
-  const models = (PROVIDERS[providerKey] || PROVIDERS['groq'])?.models || [];
+  const models = (PROVIDERS[providerKey] || PROVIDERS['cerebras'])?.models || [];
   const currentVal = sel.value || localStorage.getItem('vx_model') || '';
 
   // ── Tambah group separator antar kategori ──
@@ -21150,8 +21100,8 @@ function closeSumberSheet() {
 // ══════════ MODEL PILL + SHEET ══════════
 function getActiveModelLabel() {
   const val = localStorage.getItem('vx_model') || 'llama-3.3-70b-versatile';
-  const provider = localStorage.getItem('vx_provider') || 'groq';
-  const models = (PROVIDERS[provider] || PROVIDERS['groq'] || {}).models || [];
+  const provider = localStorage.getItem('vx_provider') || 'cerebras';
+  const models = (PROVIDERS[provider] || PROVIDERS['cerebras'] || {}).models || [];
   const found = models.find(m => m.value === val);
   return found ? found.label : val.split('/').pop();
 }
@@ -21196,8 +21146,8 @@ function renderModelSheetList() {
   if (!list) return;
   const currentVal = localStorage.getItem('vx_model') || 'llama-3.3-70b-versatile';
   const pro = typeof isPro === 'function' && isPro();
-  const provider = localStorage.getItem('vx_provider') || 'groq';
-  const models = (PROVIDERS[provider] || PROVIDERS['groq'] || {}).models || [];
+  const provider = localStorage.getItem('vx_provider') || 'cerebras';
+  const models = (PROVIDERS[provider] || PROVIDERS['cerebras'] || {}).models || [];
 
   list.innerHTML = '';
 
