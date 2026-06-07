@@ -8054,7 +8054,7 @@ function apiKeyStorageKey() {
     const savedModel = localStorage.getItem('vx_model') || '';
     const openrouterModels = ['meta-llama/llama-3.3-70b-instruct:free','meta-llama/llama-3.1-8b-instruct:free','google/gemma-2-9b-it:free','mistralai/mistral-7b-instruct:free','deepseek/deepseek-chat-v3-0324:free','openai/gpt-4o','openai/gpt-4o-mini','anthropic/claude-3.5-sonnet','deepseek/deepseek-r1','google/gemini-2.0-flash-001'];
     if (!openrouterModels.includes(savedModel)) {
-      localStorage.setItem('vx_model', 'llama-3.3-70b-versatile');
+      localStorage.setItem('vx_model', 'meta-llama/llama-3.3-70b-instruct:free');
     }
   }
 })();
@@ -8063,10 +8063,10 @@ let apiKey = '';
 let model = localStorage.getItem('vx_model') || 'meta-llama/llama-3.3-70b-instruct:free';
 
 // ── Model tiers ──
-const MODEL_FREE_NORMAL = 'llama-3.3-70b-versatile';
-const MODEL_FREE_SMART  = 'llama-3.3-70b-versatile';
-const MODEL_PRO_NORMAL  = 'llama-3.3-70b-specdec';
-const MODEL_PRO_SMART   = 'qwen-qwq-32b';
+const MODEL_FREE_NORMAL = 'meta-llama/llama-3.3-70b-instruct:free';
+const MODEL_FREE_SMART  = 'meta-llama/llama-3.3-70b-instruct:free';
+const MODEL_PRO_NORMAL  = 'openai/gpt-4o-mini';
+const MODEL_PRO_SMART   = 'openai/gpt-4o-mini';
 
 function getActiveModel(mode) {
   const savedModel = localStorage.getItem('vx_model');
@@ -8081,7 +8081,7 @@ function getActiveModel(mode) {
 // Helper: pilih model untuk fungsi utilitas (memory, rename, deep think, dll)
 // PRO user pakai Claude Sonnet, free user pakai gpt-4o-mini
 function getUtilityModel() {
-  return (typeof isPro === 'function' && isPro()) ? 'llama-3.3-70b-specdec' : 'llama-3.3-70b-versatile';
+  return (typeof isPro === 'function' && isPro()) ? 'openai/gpt-4o-mini' : 'meta-llama/llama-3.3-70b-instruct:free';
 }
 let sidebarOpen = window.innerWidth > 640;
 let currentMode = localStorage.getItem('vx_mode') || 'normal';
@@ -12303,7 +12303,7 @@ async function generateImage(prompt, originalText) {
         'X-Title': 'Vexora AI'
       },
       body: JSON.stringify({
-        model: 'llama-3.3-70b-versatile',
+        model: 'meta-llama/llama-3.3-70b-instruct:free',
         max_tokens: 120,
         messages: [{
           role: 'user',
@@ -13104,6 +13104,8 @@ async function fireSmartAPI(messages, hasImages = false, hasDoc = false) {
   const apiHeaders = {
     'Content-Type': 'application/json',
     'Authorization': 'Bearer ' + apiKey,
+    'HTTP-Referer': 'https://pinzz133.github.io/vexora',
+    'X-Title': 'Vexora AI',
   };
 
   try {
@@ -13142,16 +13144,18 @@ async function fireSmartAPI(messages, hasImages = false, hasDoc = false) {
         // Fetch dari Perplexity via OpenRouter (sudah include web search real-time)
         let perplexityDone = false;
         try {
-          // Web search via Groq (model yang dipilih user, bukan Perplexity)
+          // Web search via OpenRouter (model yang dipilih user)
           const wsRes = await fetch('https://openrouter.ai/api/v1/chat/completions', {
             method: 'POST',
             signal: abortController.signal,
             headers: {
               'Content-Type': 'application/json',
               'Authorization': 'Bearer ' + apiKey,
+              'HTTP-Referer': 'https://pinzz133.github.io/vexora',
+              'X-Title': 'Vexora AI',
             },
             body: JSON.stringify({
-              model: 'llama-3.3-70b-versatile',
+              model: 'meta-llama/llama-3.3-70b-instruct:free',
               stream: false,
               max_tokens: 2000,
               messages: [
@@ -15813,7 +15817,7 @@ Invert: const d=ctx.getImageData(0,0,canvas.width,canvas.height);for(let i=0;i<d
         'X-Title': 'Vexora AI'
       },
       body: JSON.stringify({
-        model: 'llama-3.3-70b-versatile',
+        model: 'meta-llama/llama-3.3-70b-instruct:free',
         stream: false,
         max_tokens: 800,
         messages: [
@@ -15953,7 +15957,7 @@ async function getEditDescription(imgObj, instruction, code) {
         'X-Title': 'Vexora AI'
       },
       body: JSON.stringify({
-        model: 'llama-3.3-70b-versatile',
+        model: 'meta-llama/llama-3.3-70b-instruct:free',
         max_tokens: 80,
         messages: [
           { role: 'system', content: 'Buat deskripsi singkat (max 1 kalimat, bahasa Indonesia) tentang efek edit gambar yang telah diterapkan. Langsung to the point, tidak perlu salam.' },
