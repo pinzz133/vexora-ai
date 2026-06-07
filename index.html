@@ -239,6 +239,250 @@ window._mermaidGlobalCounter = 0;
 }
 /* ══════════ END CUSTOM INSTRUCTIONS ══════════ */
 
+/* ══════════ SETTINGS MODAL ══════════ */
+#settings-modal {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,.4);
+  z-index: 300;
+  place-items: center;
+  backdrop-filter: blur(8px);
+}
+#settings-modal.show { display: grid; }
+.settings-modal-box {
+  background: var(--surface);
+  border: 1px solid var(--border2);
+  border-radius: 20px;
+  width: calc(100% - 32px);
+  max-width: 620px;
+  max-height: 90vh;
+  box-shadow: 0 24px 80px rgba(0,0,0,.5);
+  animation: fade-up .2s ease both;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+.settings-modal-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 18px 20px 16px;
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+}
+.settings-modal-title {
+  font-family: 'Syne', sans-serif;
+  font-size: 1.05rem;
+  font-weight: 800;
+  color: var(--text);
+  flex: 1;
+}
+.settings-modal-close {
+  width: 30px; height: 30px;
+  border-radius: 8px;
+  background: none;
+  border: 1px solid var(--border2);
+  color: var(--muted);
+  cursor: pointer;
+  font-size: 14px;
+  display: grid; place-items: center;
+  transition: all .15s;
+}
+.settings-modal-close:hover { border-color: var(--danger); color: var(--danger); }
+.settings-modal-body {
+  display: flex;
+  flex: 1;
+  overflow: hidden;
+  min-height: 0;
+}
+/* Sidebar nav */
+.settings-nav {
+  width: 180px;
+  flex-shrink: 0;
+  border-right: 1px solid var(--border);
+  padding: 12px 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  overflow-y: auto;
+  background: var(--surface2);
+}
+.settings-nav-item {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 9px 11px;
+  border-radius: 9px;
+  font-size: .78rem;
+  color: var(--text2);
+  cursor: pointer;
+  transition: background .12s, color .12s;
+  font-family: 'Inter', sans-serif;
+  border: none;
+  background: none;
+  width: 100%;
+  text-align: left;
+}
+.settings-nav-item:hover { background: var(--surface); color: var(--text); }
+.settings-nav-item.active {
+  background: var(--surface);
+  color: var(--accent);
+  font-weight: 500;
+}
+.settings-nav-item svg { flex-shrink: 0; opacity: .75; }
+.settings-nav-item.active svg { opacity: 1; }
+.settings-nav-sep {
+  border: none;
+  border-top: 1px solid var(--border);
+  margin: 6px 4px;
+}
+/* Content area */
+.settings-content {
+  flex: 1;
+  overflow-y: auto;
+  padding: 24px 24px 28px;
+  min-width: 0;
+}
+.settings-content::-webkit-scrollbar { width: 3px; }
+.settings-content::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 3px; }
+.settings-tab { display: none; }
+.settings-tab.active { display: block; }
+.settings-tab-title {
+  font-family: 'Syne', sans-serif;
+  font-size: .95rem;
+  font-weight: 800;
+  color: var(--text);
+  margin-bottom: 4px;
+}
+.settings-tab-sub {
+  font-size: .75rem;
+  color: var(--text2);
+  margin-bottom: 20px;
+  line-height: 1.5;
+}
+.settings-field-label {
+  font-size: .7rem;
+  font-weight: 600;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: .5px;
+  margin-bottom: 7px;
+  display: block;
+}
+.settings-input {
+  width: 100%;
+  background: var(--surface2);
+  border: 1px solid var(--border2);
+  border-radius: 10px;
+  color: var(--text);
+  font-family: 'Inter', sans-serif;
+  font-size: .82rem;
+  padding: 10px 13px;
+  outline: none;
+  transition: border-color .2s;
+  box-sizing: border-box;
+}
+.settings-input:focus { border-color: rgba(204,107,61,.5); box-shadow: 0 0 0 2px rgba(204,107,61,.1); }
+.settings-textarea {
+  width: 100%;
+  background: var(--surface2);
+  border: 1px solid var(--border2);
+  border-radius: 10px;
+  color: var(--text);
+  font-family: 'Inter', sans-serif;
+  font-size: .82rem;
+  padding: 12px 13px;
+  outline: none;
+  resize: none;
+  min-height: 160px;
+  max-height: 280px;
+  line-height: 1.65;
+  transition: border-color .2s;
+  box-sizing: border-box;
+}
+.settings-textarea:focus { border-color: rgba(204,107,61,.5); box-shadow: 0 0 0 2px rgba(204,107,61,.1); }
+.settings-textarea::placeholder, .settings-input::placeholder { color: var(--muted); opacity: .7; }
+.settings-char-count {
+  font-size: .66rem;
+  color: var(--muted);
+  text-align: right;
+  margin-top: 5px;
+}
+.settings-save-btn {
+  margin-top: 16px;
+  padding: 9px 22px;
+  border-radius: 9px;
+  border: none;
+  background: linear-gradient(135deg, #cc6b3d, #a07850);
+  color: #fff;
+  font-family: 'Inter', sans-serif;
+  font-size: .78rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all .15s;
+  box-shadow: 0 2px 8px rgba(204,107,61,.3);
+}
+.settings-save-btn:hover { opacity: .9; transform: translateY(-1px); }
+.settings-save-btn.saved { background: linear-gradient(135deg, #4a9e5c, #3a8a4e); }
+.settings-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  padding: 13px 0;
+  border-bottom: 1px solid var(--border);
+}
+.settings-row:last-child { border-bottom: none; }
+.settings-row-info { flex: 1; }
+.settings-row-label {
+  font-size: .82rem;
+  font-weight: 500;
+  color: var(--text);
+  margin-bottom: 2px;
+}
+.settings-row-desc {
+  font-size: .7rem;
+  color: var(--muted);
+  line-height: 1.4;
+}
+.settings-hint {
+  font-size: .71rem;
+  color: var(--text2);
+  line-height: 1.55;
+  padding: 10px 12px;
+  background: rgba(204,107,61,.05);
+  border: 1px solid rgba(204,107,61,.12);
+  border-radius: 9px;
+  margin-bottom: 16px;
+}
+.settings-danger-btn {
+  padding: 8px 18px;
+  border-radius: 8px;
+  border: 1px solid rgba(192,57,43,.35);
+  background: none;
+  color: var(--danger);
+  font-family: 'Inter', sans-serif;
+  font-size: .75rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all .15s;
+}
+.settings-danger-btn:hover { background: rgba(192,57,43,.08); border-color: var(--danger); }
+/* API key section in settings */
+.settings-api-info {
+  font-size: .72rem;
+  color: var(--text2);
+  padding: 8px 11px;
+  background: var(--surface2);
+  border: 1px solid var(--border2);
+  border-radius: 8px;
+  margin-bottom: 10px;
+  line-height: 1.5;
+}
+.settings-api-info a { color: var(--accent); text-decoration: none; }
+/* ══════════ END SETTINGS MODAL ══════════ */
+
 /* ══════════ PROVIDER CARDS ══════════ */
 .provider-card {
   display: flex;
@@ -6688,21 +6932,9 @@ body.login-active #overlay {
         <div class="settings-popup-header-label">Akun</div>
         <div class="settings-popup-username" id="settings-popup-uname">–</div>
       </div>
-      <button class="settings-pop-item" onclick="openAiProfile();closeSidebarSettingsPopup()">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg>
-        Profil Vexora AI
-      </button>
-      <button class="settings-pop-item" onclick="openNameModal();closeSidebarSettingsPopup()">
-        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M17 3a2.8 2.8 0 0 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/></svg>
-        Ubah nama tampilan
-      </button>
-      <button class="settings-pop-item" onclick="openApiModal();closeSidebarSettingsPopup()">
-        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="3"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14M4.93 4.93a10 10 0 0 0 0 14.14"/></svg>
-        API Key
-      </button>
-      <button class="settings-pop-item" onclick="openSysPromptModal();closeSidebarSettingsPopup()">
-        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 2a10 10 0 1 1 0 20 10 10 0 0 1 0-20z"/><path d="M12 8v4l3 3"/></svg>
-        Persona AI
+      <button class="settings-pop-item" onclick="openSettingsModal();closeSidebarSettingsPopup()">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14M4.93 4.93a10 10 0 0 0 0 14.14"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"/></svg>
+        Pengaturan
       </button>
       <button class="settings-pop-item" onclick="exportChat();closeSidebarSettingsPopup()">
         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
@@ -21209,8 +21441,257 @@ async function adminDoRevokePro() {
   } catch(e) {}
 }
 // ══════════ END USER REGISTRY + BAN + GRANT PRO ══════════
+</script>
 
-// ── Hook loginSuccess untuk trigger admin verification & register ke Firebase ──
+<!-- ══════════ SETTINGS MODAL ══════════ -->
+<div id="settings-modal" onclick="if(event.target===this)closeSettingsModal()">
+  <div class="settings-modal-box">
+    <div class="settings-modal-header">
+      <div style="width:32px;height:32px;border-radius:9px;background:linear-gradient(135deg,rgba(204,107,61,.2),rgba(204,107,61,.08));border:1px solid rgba(204,107,61,.3);display:grid;place-items:center;font-size:15px;flex-shrink:0">⚙️</div>
+      <div class="settings-modal-title">Pengaturan</div>
+      <button class="settings-modal-close" onclick="closeSettingsModal()">✕</button>
+    </div>
+    <div class="settings-modal-body">
+      <!-- Nav sidebar -->
+      <nav class="settings-nav">
+        <button class="settings-nav-item active" onclick="switchSettingsTab('preferences',this)">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+          Preferensi
+        </button>
+        <button class="settings-nav-item" onclick="switchSettingsTab('instructions',this)">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+          Custom Instructions
+        </button>
+        <button class="settings-nav-item" onclick="switchSettingsTab('apikey',this)">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14M4.93 4.93a10 10 0 0 0 0 14.14"/></svg>
+          API Key
+        </button>
+        <button class="settings-nav-item" onclick="switchSettingsTab('account',this)">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+          Akun
+        </button>
+      </nav>
+
+      <!-- Content -->
+      <div class="settings-content">
+
+        <!-- TAB: Preferensi -->
+        <div class="settings-tab active" id="stab-preferences">
+          <div class="settings-tab-title">Preferensi Pribadi</div>
+          <div class="settings-tab-sub">Preferensi Anda akan berlaku untuk semua percakapan.</div>
+          <label class="settings-field-label">Preferensi apa yang perlu AI pertimbangkan dalam responsnya?</label>
+          <textarea class="settings-textarea" id="settings-prefs-input" maxlength="1500"
+            placeholder="Contoh: Ajukan pertanyaan untuk memperjelas sebelum memberikan jawaban yang detail"
+            oninput="document.getElementById('settings-prefs-count').textContent=this.value.length"></textarea>
+          <div class="settings-char-count"><span id="settings-prefs-count">0</span> / 1500</div>
+          <button class="settings-save-btn" id="settings-prefs-btn" onclick="saveSettingsPrefs()">Simpan Preferensi</button>
+        </div>
+
+        <!-- TAB: Custom Instructions -->
+        <div class="settings-tab" id="stab-instructions">
+          <div class="settings-tab-title">Custom Instructions</div>
+          <div class="settings-tab-sub">Berikan instruksi khusus ke AI — gaya jawaban, bahasa, atau fokus tertentu. Berlaku di semua chat.</div>
+          <div class="settings-hint">💡 Instruksi ini ditambahkan ke setiap percakapan sebagai konteks tambahan untuk AI.</div>
+          <label class="settings-field-label">Instruksi untuk AI</label>
+          <textarea class="settings-textarea" id="settings-ci-input" maxlength="2000"
+            placeholder="Contoh: Selalu jawab dalam bahasa Indonesia. Gunakan bullet points untuk daftar. Jangan terlalu formal."
+            oninput="document.getElementById('settings-ci-count').textContent=this.value.length"></textarea>
+          <div class="settings-char-count"><span id="settings-ci-count">0</span> / 2000</div>
+          <div style="display:flex;flex-wrap:wrap;gap:5px;margin-top:10px;margin-bottom:4px">
+            <button class="cust-preset-btn" onclick="setSettingsCIPreset('coding')">💻 Coding Expert</button>
+            <button class="cust-preset-btn" onclick="setSettingsCIPreset('teacher')">📚 Guru/Tutor</button>
+            <button class="cust-preset-btn" onclick="setSettingsCIPreset('creative')">🎨 Penulis Kreatif</button>
+            <button class="cust-preset-btn" onclick="setSettingsCIPreset('formal')">👔 Formal</button>
+            <button class="cust-preset-btn" onclick="setSettingsCIPreset('concise')">⚡ Singkat & Padat</button>
+            <button class="cust-preset-btn" onclick="setSettingsCIPreset('friend')">😎 Santai & Gaul</button>
+            <button class="cust-preset-btn" onclick="setSettingsCIPreset('')" style="border-color:rgba(192,57,43,.3);color:#c0392b">🗑 Reset</button>
+          </div>
+          <button class="settings-save-btn" id="settings-ci-btn" onclick="saveSettingsCI()">Simpan Instructions</button>
+        </div>
+
+        <!-- TAB: API Key -->
+        <div class="settings-tab" id="stab-apikey">
+          <div class="settings-tab-title">API Key</div>
+          <div class="settings-tab-sub">Pilih provider dan masukkan API key kamu.</div>
+          <div class="settings-api-info">🔗 <a href="https://openrouter.ai/keys" target="_blank">Buat API key OpenRouter di sini ↗</a></div>
+          <label class="settings-field-label">Provider</label>
+          <div style="margin-bottom:14px">
+            <button class="provider-card active" style="width:100%;flex-direction:row;gap:10px;padding:10px 14px;text-align:left;justify-content:flex-start" id="settings-pcard-openrouter">
+              <div class="pcard-icon">🔀</div>
+              <div>
+                <div class="pcard-name">OpenRouter</div>
+                <div class="pcard-sub">100+ model tersedia</div>
+              </div>
+            </button>
+          </div>
+          <label class="settings-field-label">API Key</label>
+          <input type="password" class="settings-input" id="settings-api-key-input" placeholder="Masukkan API key..." style="margin-bottom:14px"/>
+          <label class="settings-field-label">Model AI</label>
+          <div id="settings-model-cards-grid" style="margin-bottom:4px"></div>
+          <button class="settings-save-btn" id="settings-api-btn" onclick="saveSettingsApiKey()">Simpan API Key</button>
+        </div>
+
+        <!-- TAB: Akun -->
+        <div class="settings-tab" id="stab-account">
+          <div class="settings-tab-title">Akun</div>
+          <div class="settings-tab-sub">Kelola informasi akun kamu.</div>
+          <label class="settings-field-label">Nama Tampilan</label>
+          <input type="text" class="settings-input" id="settings-name-input" maxlength="30" placeholder="Nama kamu..." style="margin-bottom:4px"/>
+          <div style="font-size:.65rem;color:var(--muted);margin-bottom:16px">AI akan menyebut namamu di setiap percakapan.</div>
+          <button class="settings-save-btn" id="settings-name-btn" onclick="saveSettingsName()">Simpan Nama</button>
+          <hr style="border:none;border-top:1px solid var(--border);margin:24px 0 16px">
+          <div class="settings-row-label" style="margin-bottom:4px;font-size:.82rem;font-weight:500;color:var(--text)">Keluar dari Akun</div>
+          <div class="settings-row-desc" style="font-size:.7rem;color:var(--muted);margin-bottom:12px">Kamu akan keluar dari sesi ini.</div>
+          <button class="settings-danger-btn" onclick="closeSettingsModal();doLogout()">Keluar</button>
+        </div>
+
+      </div>
+    </div>
+  </div>
+</div>
+<!-- ══════════ END SETTINGS MODAL ══════════ -->
+
+<script>
+// ══════════ SETTINGS MODAL JS ══════════
+let _settingsModelCards = [];
+
+function openSettingsModal(tab) {
+  const modal = document.getElementById('settings-modal');
+  if (!modal) return;
+
+  // Sync preferences textarea
+  const prefsVal = localStorage.getItem('vx_user_prefs') || '';
+  const prefsEl = document.getElementById('settings-prefs-input');
+  if (prefsEl) { prefsEl.value = prefsVal; document.getElementById('settings-prefs-count').textContent = prefsVal.length; }
+
+  // Sync custom instructions textarea (reuse existing customSysPrompt)
+  const ciEl = document.getElementById('settings-ci-input');
+  if (ciEl) { ciEl.value = typeof customSysPrompt !== 'undefined' ? customSysPrompt : (localStorage.getItem('vx_sys_prompt') || ''); document.getElementById('settings-ci-count').textContent = ciEl.value.length; }
+
+  // Sync name
+  const nameEl = document.getElementById('settings-name-input');
+  if (nameEl) nameEl.value = typeof customUserName !== 'undefined' ? customUserName : (localStorage.getItem('vx_user_name') || '');
+
+  // Sync API key
+  const apiInp = document.getElementById('settings-api-key-input');
+  if (apiInp) {
+    const pKeyName = 'vx_apikey_openrouter_' + ((typeof currentUser !== 'undefined' && currentUser) ? currentUser.key : 'guest');
+    apiInp.value = localStorage.getItem(pKeyName) || localStorage.getItem('vx_api_key') || '';
+  }
+
+  // Sync model cards
+  _syncSettingsModelCards();
+
+  modal.classList.add('show');
+  if (tab) switchSettingsTab(tab, document.querySelector(`.settings-nav-item[onclick*="${tab}"]`));
+}
+
+function closeSettingsModal() {
+  document.getElementById('settings-modal').classList.remove('show');
+}
+
+function switchSettingsTab(tabId, btn) {
+  document.querySelectorAll('.settings-tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.settings-nav-item').forEach(b => b.classList.remove('active'));
+  const tab = document.getElementById('stab-' + tabId);
+  if (tab) tab.classList.add('active');
+  if (btn) btn.classList.add('active');
+}
+
+function saveSettingsPrefs() {
+  const val = document.getElementById('settings-prefs-input').value.trim();
+  localStorage.setItem('vx_user_prefs', val);
+  const btn = document.getElementById('settings-prefs-btn');
+  btn.textContent = '✅ Tersimpan!'; btn.classList.add('saved');
+  setTimeout(() => { btn.textContent = 'Simpan Preferensi'; btn.classList.remove('saved'); }, 2000);
+}
+
+function saveSettingsCI() {
+  const val = document.getElementById('settings-ci-input').value.trim();
+  if (typeof customSysPrompt !== 'undefined') window.customSysPrompt = val;
+  localStorage.setItem('vx_sys_prompt', val);
+  if (typeof applyCustomNames === 'function') applyCustomNames();
+  // update CI indicator if exists
+  const ind = document.getElementById('ci-indicator');
+  if (ind) ind.classList.toggle('show', !!val);
+  const btn = document.getElementById('settings-ci-btn');
+  btn.textContent = '✅ Tersimpan!'; btn.classList.add('saved');
+  setTimeout(() => { btn.textContent = 'Simpan Instructions'; btn.classList.remove('saved'); }, 2000);
+}
+
+function setSettingsCIPreset(key) {
+  const presets = typeof CUST_PRESETS !== 'undefined' ? CUST_PRESETS : {};
+  const el = document.getElementById('settings-ci-input');
+  if (!el) return;
+  el.value = presets[key] || '';
+  document.getElementById('settings-ci-count').textContent = el.value.length;
+}
+
+function saveSettingsApiKey() {
+  const key = document.getElementById('settings-api-key-input').value.trim();
+  const sel = document.getElementById('model-select');
+  const pKeyName = 'vx_apikey_openrouter_' + ((typeof currentUser !== 'undefined' && currentUser) ? currentUser.key : 'guest');
+  localStorage.setItem(pKeyName, key);
+  localStorage.setItem('vx_provider', 'openrouter');
+  if (typeof apiKey !== 'undefined') window.apiKey = key;
+  // get selected model from settings cards
+  const selCard = document.querySelector('#settings-model-cards-grid .model-card.selected');
+  if (selCard && selCard.dataset.val) {
+    window.model = selCard.dataset.val;
+    localStorage.setItem('vx_model', selCard.dataset.val);
+    if (sel) sel.value = selCard.dataset.val;
+  }
+  const btn = document.getElementById('settings-api-btn');
+  btn.textContent = '✅ Tersimpan!'; btn.classList.add('saved');
+  setTimeout(() => { btn.textContent = 'Simpan API Key'; btn.classList.remove('saved'); }, 2000);
+}
+
+function saveSettingsName() {
+  const val = document.getElementById('settings-name-input').value.trim();
+  if (typeof customUserName !== 'undefined') window.customUserName = val;
+  localStorage.setItem('vx_user_name', val);
+  if (typeof applyCustomNames === 'function') applyCustomNames();
+  const btn = document.getElementById('settings-name-btn');
+  btn.textContent = '✅ Tersimpan!'; btn.classList.add('saved');
+  setTimeout(() => { btn.textContent = 'Simpan Nama'; btn.classList.remove('saved'); }, 2000);
+}
+
+function _syncSettingsModelCards() {
+  const grid = document.getElementById('settings-model-cards-grid');
+  if (!grid) return;
+  // Clone model cards from main grid if it exists
+  const srcGrid = document.getElementById('model-cards-grid');
+  if (srcGrid && srcGrid.innerHTML.trim()) {
+    grid.innerHTML = srcGrid.innerHTML;
+    const savedModel = localStorage.getItem('vx_model') || '';
+    grid.querySelectorAll('.model-card').forEach(c => {
+      c.classList.toggle('selected', c.dataset.val === savedModel);
+      c.onclick = function() {
+        grid.querySelectorAll('.model-card').forEach(x => x.classList.remove('selected'));
+        this.classList.add('selected');
+      };
+    });
+  }
+}
+// ══════════ END SETTINGS MODAL JS ══════════
+
+// Inject user prefs into system prompt build
+(function _patchUserPrefs() {
+  const _origBuild = window.buildSystemPrompt;
+  if (typeof _origBuild === 'function') {
+    window.buildSystemPrompt = function() {
+      const base = _origBuild();
+      const prefs = localStorage.getItem('vx_user_prefs') || '';
+      if (!prefs) return base;
+      return base + '\n\nUSER PERSONAL PREFERENCES (always consider these in every response):\n' + prefs;
+    };
+  } else {
+    setTimeout(_patchUserPrefs, 200);
+  }
+})();
+</script>
+
+<script>
 (function _patchLoginForAdmin() {
   const _origLS = window.loginSuccess;
   if (typeof _origLS === 'function') {
