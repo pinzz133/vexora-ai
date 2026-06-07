@@ -8653,7 +8653,7 @@ const WEB_SEARCH_TRIGGERS = [
   /\b(peraturan|regulasi|kebijakan|policy|aturan|hukum|undang|pp\s?\d+|uu\s?\d+)\b.*\b(terbaru|baru|2025|2026|update)\b/i,
   // pertanyaan umum tentang fakta/kejadian terkini
   /\b(apa yang terjadi|lagi terjadi|sedang terjadi|lagi viral|lagi trending|ramai dibicarakan)\b/i,
-  /\b(apakah|apa kabar|gimana|bagaimana)\b.{0,30}\b(sekarang|saat ini|hari ini|masih|sudah)\b/i,
+  /\b(apakah|bagaimana)\b.{0,30}\b(sekarang|saat ini|hari ini)\b.{0,30}\b(situasi|kondisi|keadaan|status|perkembangan)\b/i,
   /\b(bocoran|leak|rumor|isu|kabar|gossip|gosip)\b/i,
   // tempat / wisata / kuliner
   /\b(restoran|resto|cafe|kafe|hotel|wisata|tempat makan|rekomendasi|review)\b.{0,30}\b(terbaik|terbaru|enak|bagus|recommended|hits)\b/i,
@@ -13068,7 +13068,7 @@ async function fireSmartAPI(messages, hasImages = false, hasDoc = false) {
         }
         usingOnlineModel = true;
         // Sanitize query: ubah request user jadi query pencarian yang aman & relevan
-        const safeSearchQuery = (typeof sanitizeSearchQuery === 'function') ? await sanitizeSearchQuery(queryText) : sanitizeSearchQueryFallback(queryText).slice(0, 80);
+        const safeSearchQuery = sanitizeSearchQueryFallback(queryText).slice(0, 80);
         // Hapus typing bubble, tampilkan web search bubble
         removeTyping();
         createWebSearchBubble(safeSearchQuery.slice(0, 80));
@@ -13093,7 +13093,16 @@ async function fireSmartAPI(messages, hasImages = false, hasDoc = false) {
               ]
             })
           });
-          if (wsRes.ok) {
+          if (!wsRes.ok) {
+            // Kalau 429 dari web search, jangan lanjut ke main call — sudah kena rate limit
+            if (wsRes.status === 429) {
+              removeTyping();
+              setGenerating(false);
+              appendMsg('ai', '⏱️ Terlalu banyak permintaan dalam waktu singkat (rate limit Groq). Tunggu beberapa detik lalu coba lagi — API key kamu masih valid.');
+              return;
+            }
+            updateWebSearchBubble([], safeSearchQuery.slice(0, 60));
+          } else if (wsRes.ok) {
             const wsData = await wsRes.json();
             const wsContent = wsData?.choices?.[0]?.message?.content || '';
             const citations = wsData?.citations || [];
@@ -13193,14 +13202,12 @@ async function fireSmartAPI(messages, hasImages = false, hasDoc = false) {
             } else {
               updateWebSearchBubble([], safeSearchQuery.slice(0, 60));
             }
-          } else {
-            updateWebSearchBubble([], safeSearchQuery.slice(0, 60));
           }
         } catch(wsErr) {
           if (wsErr.name === 'AbortError') throw wsErr;
           updateWebSearchBubble([], safeSearchQuery.slice(0, 60));
         }
-        // Kalau Perplexity berhasil, selesai — tidak perlu call model utama lagi
+        // Kalau web search berhasil, selesai — tidak perlu call model utama lagi
         if (perplexityDone) {
           setGenerating(false);
           setGenerating(false);
@@ -13262,7 +13269,12 @@ async function fireSmartAPI(messages, hasImages = false, hasDoc = false) {
       // 402/429 = kredit habis atau rate limit
       if (res.status === 402 || res.status === 429 || /insufficient|credit|quota|billing|payment|out of credits|no credits|balance/i.test(errMsg)) {
         removeTyping();
-        appendMsg('ai', '💳 Kuota atau rate limit API key Groq kamu mungkin sudah habis. Coba lagi sebentar atau buat API key baru di console.groq.com.');
+        const isRateLimit = res.status === 429 && !/insufficient|credit|quota|billing|payment|out of credits|no credits|balance/i.test(errMsg);
+        if (isRateLimit) {
+          appendMsg('ai', '⏱️ Terlalu banyak permintaan dalam waktu singkat (rate limit Groq). Tunggu beberapa detik lalu coba lagi — API key kamu masih valid.');
+        } else {
+          appendMsg('ai', '💳 Kredit API key Groq kamu sepertinya sudah habis. Cek di console.groq.com/keys atau buat API key baru.');
+        }
         return;
       }
       if (data.error) throw new Error(errMsg || 'API Error ' + res.status);
