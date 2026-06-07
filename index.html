@@ -7495,11 +7495,25 @@ let model = localStorage.getItem('vx_model') || 'openai/gpt-4o-mini';
 // ── Model tiers ──
 const MODEL_FREE_NORMAL = 'openai/gpt-4o-mini';
 const MODEL_FREE_SMART  = 'openai/gpt-4o';
-const MODEL_PRO_NORMAL  = 'anthropic/claude-sonnet-4-6';
-const MODEL_PRO_SMART   = 'anthropic/claude-opus-4-6';
+const MODEL_PRO_NORMAL  = 'anthropic/claude-sonnet-4-5';
+const MODEL_PRO_SMART   = 'anthropic/claude-opus-4';
 
 function getActiveModel(mode) {
   const pro = typeof isPro === 'function' && isPro();
+
+  // Kalau user sudah manual pilih model, hormati pilihannya
+  const manualModel = localStorage.getItem('vx_model') || '';
+  const allModels = (PROVIDERS['openrouter'] || {}).models || [];
+  const modelEntry = allModels.find(m => m.value === manualModel);
+  const isValidModel = !!modelEntry;
+  const isProModel = modelEntry && modelEntry.pro;
+
+  // Kalau model valid dan (gratis atau user PRO), pakai pilihan user
+  if (isValidModel && manualModel && (!isProModel || pro)) {
+    return manualModel;
+  }
+
+  // Fallback ke logika mode
   if (mode === 'smart-pro') return pro ? MODEL_PRO_SMART  : MODEL_FREE_SMART;
   if (mode === 'normal-pro') return pro ? MODEL_PRO_NORMAL : MODEL_FREE_NORMAL;
   if (mode === 'smart') return MODEL_FREE_SMART;
@@ -7509,7 +7523,7 @@ function getActiveModel(mode) {
 // Helper: pilih model untuk fungsi utilitas (memory, rename, deep think, dll)
 // PRO user pakai Claude Sonnet, free user pakai gpt-4o-mini
 function getUtilityModel() {
-  return (typeof isPro === 'function' && isPro()) ? 'anthropic/claude-sonnet-4-6' : 'openai/gpt-4o-mini';
+  return (typeof isPro === 'function' && isPro()) ? 'anthropic/claude-sonnet-4-5' : 'openai/gpt-4o-mini';
 }
 let sidebarOpen = window.innerWidth > 640;
 let currentMode = localStorage.getItem('vx_mode') || 'normal';
@@ -10263,10 +10277,10 @@ const PROVIDERS = {
       { value: 'deepseek/deepseek-r1:free',                    label: 'DeepSeek R1',           tag: 'Gratis · Reasoning' },
       { value: 'mistralai/mistral-small-3.1-24b-instruct:free',label: 'Mistral Small 3.1',     tag: 'Gratis · Ringan' },
       // ── PRO — Umum ──
-      { value: 'anthropic/claude-sonnet-4-6',                  label: 'Vexora Pro 4.6',        tag: 'PRO · Terbaik', pro: true },
+      { value: 'anthropic/claude-sonnet-4-5',                  label: 'Vexora Pro 4.6',        tag: 'PRO · Terbaik', pro: true },
       { value: 'openai/gpt-4o',                                label: 'GPT-4o',                tag: 'PRO · Multimodal', pro: true },
       { value: 'google/gemini-2.5-pro',                        label: 'Gemini 2.5 Pro',        tag: 'PRO · Riset', pro: true },
-      { value: 'anthropic/claude-opus-4-6',                    label: 'Vexora Apex 4.6',       tag: 'PRO · Analisis berat', pro: true },
+      { value: 'anthropic/claude-opus-4',                    label: 'Vexora Apex 4.6',       tag: 'PRO · Analisis berat', pro: true },
       // ── PRO — Coding ──
       { value: 'deepseek/deepseek-v4-pro',                     label: 'DeepSeek V4 Pro',       tag: 'PRO · Coding', pro: true },
       { value: 'openai/o4-mini',                               label: 'OpenAI o4-mini',        tag: 'PRO · Coding+Math', pro: true },
@@ -10279,7 +10293,7 @@ const PROVIDERS = {
 // Non-PRO / akun baru  → GPT-4o Mini (gratis)
 // PRO                  → DeepSeek Coder V2 (PRO · Coding)
 const MODEL_DEFAULT_FREE = 'openai/gpt-4o-mini';
-const MODEL_DEFAULT_PRO  = 'anthropic/claude-opus-4-6';
+const MODEL_DEFAULT_PRO  = 'anthropic/claude-opus-4';
 
 function applyDefaultModelByProStatus(forceOverride) {
   const pro = typeof isPro === 'function' && isPro();
@@ -12750,7 +12764,7 @@ async function fireSmartAPI(messages, hasImages = false, hasDoc = false) {
       }
     }
 
-    const selectedModel = hasImages ? (typeof isPro === 'function' && isPro() ? 'anthropic/claude-sonnet-4-6' : 'openai/gpt-4o') : getCurrentModeModel(currentMode);
+    const selectedModel = hasImages ? (typeof isPro === 'function' && isPro() ? 'anthropic/claude-sonnet-4-5' : 'openai/gpt-4o') : getCurrentModeModel(currentMode);
 
     // ── Priority handled by rate limit system ──
     const proUser = typeof isPro === 'function' && isPro();
@@ -20013,7 +20027,7 @@ function makeSheetItem(m, currentVal, locked) {
       updateModelPill();
       closeModelSheet();
       // Tampilkan toast jika pilih Apex
-      if (m.value === 'anthropic/claude-opus-4-6') {
+      if (m.value === 'anthropic/claude-opus-4') {
         showApexWarningToast();
       }
     });
