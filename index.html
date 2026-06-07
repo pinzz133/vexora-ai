@@ -6701,12 +6701,15 @@ body.login-active #overlay {
         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
         Export Chat
       </button>
+      <button id="admin-sidebar-btn" class="settings-pop-item" onclick="openAdminPanel();closeSidebarSettingsPopup()" style="display:none;color:#cc6b3d;">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+        Admin Panel
+      </button>
       <hr style="border:none;border-top:1px solid var(--border);margin:4px 0">
       <button class="settings-pop-item danger" onclick="doLogout()">
         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
         Keluar
       </button>
-    </div>
 
     <!-- User pill -->
     <div class="sidebar-user-pill">
@@ -20107,13 +20110,13 @@ onSnapshot(settingsRef, (snap) => {
   // ── Announcement Banner ──
   const banner = document.getElementById('vx-announcement');
   const bannerText = document.getElementById('vx-announcement-text');
-  if (data.announcement && data.announcement.trim()) {
-    if (bannerText) bannerText.textContent = data.announcement;
-    if (banner) banner.style.display = 'block';
-    // Push content down
+  const annoVal = (data.announcement || '').trim();
+  if (annoVal !== '') {
+    if (bannerText) bannerText.textContent = annoVal;
+    if (banner) { banner.style.display = 'block'; }
     document.body.style.paddingTop = '40px';
   } else {
-    if (banner) banner.style.display = 'none';
+    if (banner) { banner.style.display = 'none'; }
     document.body.style.paddingTop = '';
   }
 
@@ -20177,26 +20180,27 @@ function closeAnnouncement() {
   document.body.style.paddingTop = '';
 }
 
-// Show admin FAB after login if isAdmin
-const _origLoginSuccess = window.loginSuccess;
-// Patch loginSuccess to show admin button
-document.addEventListener('DOMContentLoaded', () => {
-  // Override after page load
-});
+// Show admin button in sidebar after login
+function showAdminBtn() {
+  const btn = document.getElementById('admin-sidebar-btn');
+  if (btn) btn.style.display = 'flex';
+  // Sembunyikan FAB (tidak dipakai)
+  const fab = document.getElementById('admin-panel-btn');
+  if (fab) fab.style.display = 'none';
+}
 
-// Hook: watch currentUser changes
-(function patchLoginSuccess() {
-  const _orig = window.loginSuccess;
-  if (typeof _orig === 'function') {
+// Patch loginSuccess — tunggu sampai fungsi tersedia
+(function waitAndPatch() {
+  if (typeof window.loginSuccess === 'function') {
+    const _orig = window.loginSuccess;
     window.loginSuccess = function(user) {
       _orig(user);
       if (user && user.isAdmin) {
-        const btn = document.getElementById('admin-panel-btn');
-        if (btn) { btn.style.display = 'flex'; }
+        setTimeout(showAdminBtn, 300);
       }
     };
   } else {
-    setTimeout(patchLoginSuccess, 100);
+    setTimeout(waitAndPatch, 50);
   }
 })();
 </script>
