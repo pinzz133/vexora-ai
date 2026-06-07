@@ -522,7 +522,80 @@ window._mermaidGlobalCounter = 0;
 .admin-revoke-btn:hover { border-color: #ef4444; color: #ef4444; }
 .admin-user-loading { font-size: .74rem; color: var(--muted); text-align: center; padding: 8px; animation: ci-pulse 1.5s ease-in-out infinite; }
 
-
+/* ── Admin global API key card ── */
+.admin-apikey-card {
+  border: 1px solid var(--border2);
+  border-radius: 14px;
+  padding: 16px 18px;
+  background: var(--surface2);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.admin-apikey-label {
+  font-size: .88rem;
+  font-weight: 700;
+  color: var(--text);
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+.admin-apikey-desc {
+  font-size: .74rem;
+  color: var(--muted);
+  line-height: 1.5;
+}
+.admin-apikey-input {
+  width: 100%;
+  background: var(--surface);
+  border: 1px solid var(--border2);
+  border-radius: 10px;
+  padding: 10px 12px;
+  font-size: .8rem;
+  color: var(--text);
+  font-family: monospace;
+  outline: none;
+  box-sizing: border-box;
+  transition: border-color .15s;
+}
+.admin-apikey-input:focus { border-color: var(--accent); }
+.admin-apikey-input::placeholder { color: var(--muted); font-family: inherit; }
+.admin-apikey-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.admin-apikey-toggle-wrap {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  border-radius: 10px;
+  background: var(--surface);
+  border: 1px solid var(--border2);
+  flex: 1;
+}
+.admin-apikey-toggle-label {
+  font-size: .78rem;
+  font-weight: 600;
+  color: var(--muted);
+  flex: 1;
+}
+.admin-apikey-toggle-label.on { color: #34d399; }
+.admin-apikey-save-btn {
+  background: linear-gradient(135deg, var(--accent), var(--accent2));
+  color: #fff;
+  border: none;
+  border-radius: 10px;
+  padding: 9px 14px;
+  font-size: .8rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: opacity .15s;
+  white-space: nowrap;
+}
+.admin-apikey-save-btn:hover { opacity: .88; }
+.admin-apikey-save-btn:disabled { opacity: .5; cursor: not-allowed; }
 
 /* ══════════ CUSTOM INSTRUCTIONS MODAL ══════════ */
 #ci-modal {
@@ -7551,15 +7624,15 @@ body.login-active #overlay {
 
       <!-- Provider Selector -->
       <div style="display:grid;grid-template-columns:1fr;gap:8px;margin-bottom:16px" id="provider-grid">
-        <button class="provider-card active" id="pcard-groq" onclick="selectProvider('groq')">
+        <button class="provider-card active" id="pcard-openrouter" onclick="selectProvider('openrouter')">
           <div class="pcard-icon">⚡</div>
-          <div class="pcard-name">Groq</div>
-          <div class="pcard-sub">Ultra cepat · Gratis</div>
+          <div class="pcard-name">OpenRouter</div>
+          <div class="pcard-sub">Multi-model · Gratis</div>
         </button>
       </div>
 
       <!-- API Key info -->
-      <div id="provider-info" style="font-size:.72rem;color:var(--text2);margin-bottom:8px;padding:8px 10px;background:var(--surface2);border-radius:8px;border:1px solid var(--border2)"><a href="https://console.groq.com/keys" target="_blank" style="color:var(--accent);text-decoration:none;">Dapatkan API key Groq gratis di sini ↗</a></div>
+      <div id="provider-info" style="font-size:.72rem;color:var(--text2);margin-bottom:8px;padding:8px 10px;background:var(--surface2);border-radius:8px;border:1px solid var(--border2)"><a href="https://openrouter.ai/keys" target="_blank" style="color:var(--accent);text-decoration:none;">Dapatkan API key OpenRouter gratis di sini ↗</a></div>
 
       <!-- API Key input -->
       <input type="password" id="api-key-input" placeholder="Masukkan API key..."/>
@@ -7965,42 +8038,40 @@ function sessionsKey() {
 }
 let sessions = [];
 let activeId  = null;
-function apiKeyStorageKey(providerOverride) {
+function apiKeyStorageKey() {
   const u = (typeof currentUser !== 'undefined' && currentUser) ? currentUser.key : 'guest';
-  const provider = providerOverride || localStorage.getItem('vx_provider') || 'groq';
+  const provider = localStorage.getItem('vx_provider') || 'openrouter';
   return 'vx_apikey_' + provider + '_' + u;
 }
 
-// ── Migrasi provider lama → groq ──
+// ── Migrasi provider lama → openrouter ──
 (function migrateToGroq() {
-  const validGroqModels = ['llama-3.3-70b-versatile','llama-3.1-8b-instant','gemma2-9b-it','llama-3.2-3b-preview','qwen-qwq-32b','llama3-groq-70b-8192-tool-use-preview'];
-
-  // Paksa provider ke groq kalau masih pakai provider lama
   const savedProvider = localStorage.getItem('vx_provider');
-  if (savedProvider && savedProvider !== 'groq') {
-    localStorage.setItem('vx_provider', 'groq');
-  }
-
-  // Reset model kalau model yang tersimpan sudah deprecated/tidak valid
-  const savedModel = localStorage.getItem('vx_model') || '';
-  if (savedModel && !validGroqModels.includes(savedModel)) {
-    localStorage.setItem('vx_model', 'llama-3.3-70b-versatile');
+  if (savedProvider && savedProvider !== 'openrouter') {
+    // User punya key lama (openrouter/gemini), paksa reset ke groq
+    localStorage.setItem('vx_provider', 'openrouter');
+    // Hapus model lama yang tidak kompatibel dengan openrouter
+    const savedModel = localStorage.getItem('vx_model') || '';
+    const openrouterModels = ['meta-llama/llama-3.3-70b-instruct:free','meta-llama/llama-3.1-8b-instruct:free','google/gemma-2-9b-it:free','mistralai/mistral-7b-instruct:free','deepseek/deepseek-chat-v3-0324:free','openai/gpt-4o','openai/gpt-4o-mini','anthropic/claude-3.5-sonnet','deepseek/deepseek-r1','google/gemini-2.0-flash-001'];
+    if (!openrouterModels.includes(savedModel)) {
+      localStorage.setItem('vx_model', 'llama-3.3-70b-versatile');
+    }
   }
 })();
 
 let apiKey = '';
-let model = localStorage.getItem('vx_model') || 'llama-3.3-70b-versatile';
+let model = localStorage.getItem('vx_model') || 'meta-llama/llama-3.3-70b-instruct:free';
 
 // ── Model tiers ──
 const MODEL_FREE_NORMAL = 'llama-3.3-70b-versatile';
 const MODEL_FREE_SMART  = 'llama-3.3-70b-versatile';
-const MODEL_PRO_NORMAL  = 'qwen-qwq-32b';
+const MODEL_PRO_NORMAL  = 'llama-3.3-70b-specdec';
 const MODEL_PRO_SMART   = 'qwen-qwq-32b';
 
 function getActiveModel(mode) {
   const savedModel = localStorage.getItem('vx_model');
-  const groqModels = (typeof PROVIDERS !== 'undefined' && PROVIDERS['groq']) ? PROVIDERS['groq'].models : [];
-  const found = groqModels.find(m => m.value === savedModel);
+  const openrouterModels = (typeof PROVIDERS !== 'undefined' && PROVIDERS['openrouter']) ? PROVIDERS['openrouter'].models : [];
+  const found = openrouterModels.find(m => m.value === savedModel);
   if (found) return found.value;
   const pro = typeof isPro === 'function' && isPro();
   if (mode === 'smart-pro' || mode === 'normal-pro') return pro ? MODEL_PRO_NORMAL : MODEL_FREE_NORMAL;
@@ -8010,7 +8081,7 @@ function getActiveModel(mode) {
 // Helper: pilih model untuk fungsi utilitas (memory, rename, deep think, dll)
 // PRO user pakai Claude Sonnet, free user pakai gpt-4o-mini
 function getUtilityModel() {
-  return 'llama-3.3-70b-versatile';
+  return (typeof isPro === 'function' && isPro()) ? 'llama-3.3-70b-specdec' : 'llama-3.3-70b-versatile';
 }
 let sidebarOpen = window.innerWidth > 640;
 let currentMode = localStorage.getItem('vx_mode') || 'normal';
@@ -8655,7 +8726,7 @@ const WEB_SEARCH_TRIGGERS = [
   /\b(peraturan|regulasi|kebijakan|policy|aturan|hukum|undang|pp\s?\d+|uu\s?\d+)\b.*\b(terbaru|baru|2025|2026|update)\b/i,
   // pertanyaan umum tentang fakta/kejadian terkini
   /\b(apa yang terjadi|lagi terjadi|sedang terjadi|lagi viral|lagi trending|ramai dibicarakan)\b/i,
-  /\b(apakah|bagaimana)\b.{0,30}\b(sekarang|saat ini|hari ini)\b.{0,30}\b(situasi|kondisi|keadaan|status|perkembangan)\b/i,
+  /\b(apakah|apa kabar|gimana|bagaimana)\b.{0,30}\b(sekarang|saat ini|hari ini|masih|sudah)\b/i,
   /\b(bocoran|leak|rumor|isu|kabar|gossip|gosip)\b/i,
   // tempat / wisata / kuliner
   /\b(restoran|resto|cafe|kafe|hotel|wisata|tempat makan|rekomendasi|review)\b.{0,30}\b(terbaik|terbaru|enak|bagus|recommended|hits)\b/i,
@@ -8757,7 +8828,7 @@ async function sanitizeSearchQuery(userText) {
   const _dateStr = `${_day}/${_month}/${_year}`;
 
   try {
-    const res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+    const res = await fetch('https://openrouter.ai/api/v1/chat/completions', {
       method: 'POST',
       signal: AbortSignal.timeout(2500), // batas 2.5 detik agar tidak memblokir UX
       headers: {
@@ -9724,7 +9795,7 @@ async function extractMemories(userMsg, aiReply) {
 
   try {
     const existingFacts = loadMemories().map(m => m.fact).join('\n');
-    const res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+    const res = await fetch('https://openrouter.ai/api/v1/chat/completions', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -10001,12 +10072,14 @@ function forceScrollBottom() {
 // ─── Init ───
 function init() {
   // restore provider & populate model list first
-  currentProvider = localStorage.getItem('vx_provider') || 'groq';
+  currentProvider = localStorage.getItem('vx_provider') || 'openrouter';
   selectProvider(currentProvider);
   document.getElementById('api-key-input').value = apiKey;
   const savedModel = localStorage.getItem('vx_model') || '';
   const selEl = document.getElementById('model-select');
   if (selEl && savedModel) { const opt = selEl.querySelector(`option[value="${savedModel}"]`); if (opt) selEl.value = savedModel; }
+  // restore provider
+  currentProvider = localStorage.getItem('vx_provider') || 'openrouter';
   // sync sidebar visual state on load
   if (!sidebarOpen) {
     sidebar.classList.add('collapsed');
@@ -10692,7 +10765,7 @@ async function autoGenerateTitle(sessionId, userMsg, aiReply) {
   if (!s || s.title !== 'Chat baru') return; // Only title first message
 
   try {
-    const res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+    const res = await fetch('https://openrouter.ai/api/v1/chat/completions', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -10757,29 +10830,33 @@ function exportChat() {
 
 // ─── Multi-Provider API System ───
 const PROVIDERS = {
-  groq: {
-    name: 'Groq',
-    endpoint: 'https://api.groq.com/openai/v1/chat/completions',
-    keyPrefix: 'gsk_',
-    keyPlaceholder: 'gsk_...',
-    info: '<a href="https://console.groq.com/keys" target="_blank" style="color:var(--accent);text-decoration:none;">Dapatkan API key Groq gratis di sini ↗</a>',
+  openrouter: {
+    name: 'OpenRouter',
+    endpoint: 'https://openrouter.ai/api/v1/chat/completions',
+    keyPrefix: 'sk-or-',
+    keyPlaceholder: 'sk-or-...',
+    info: '<a href="https://openrouter.ai/keys" target="_blank" style="color:var(--accent);text-decoration:none;">Dapatkan API key OpenRouter gratis di sini ↗</a>',
     models: [
       // ── Gratis (Free Tier) ──
-      { value: 'llama-3.3-70b-versatile', label: 'Llama 3.3 70B',        tag: 'Gratis · Serba bisa' },
-      { value: 'llama-3.1-8b-instant',    label: 'Llama 3.1 8B Instant', tag: 'Gratis · Ultra Cepat' },
-      { value: 'gemma2-9b-it',            label: 'Gemma 2 9B',           tag: 'Gratis · Google' },
-      { value: 'llama-3.2-3b-preview',    label: 'Llama 3.2 3B',         tag: 'Gratis · Ringan' },
+      { value: 'meta-llama/llama-3.3-70b-instruct:free',      label: 'Llama 3.3 70B',          tag: 'Gratis · Serba bisa' },
+      { value: 'meta-llama/llama-3.1-8b-instruct:free',       label: 'Llama 3.1 8B Instant',   tag: 'Gratis · Ultra Cepat' },
+      { value: 'google/gemma-2-9b-it:free',                   label: 'Gemma 2 9B',             tag: 'Gratis · Google' },
+      { value: 'mistralai/mistral-7b-instruct:free',          label: 'Mistral 7B',             tag: 'Gratis · Ringan' },
+      { value: 'deepseek/deepseek-chat-v3-0324:free',         label: 'DeepSeek V3',            tag: 'Gratis · Kuat' },
       // ── PRO ──
-      { value: 'qwen-qwq-32b',            label: 'Qwen QwQ 32B',         tag: 'PRO · Reasoning', pro: true },
-      { value: 'llama3-groq-70b-8192-tool-use-preview', label: 'Llama 3 70B Tool Use', tag: 'PRO · Tool Use', pro: true },
+      { value: 'openai/gpt-4o',                               label: 'GPT-4o',                 tag: 'PRO · OpenAI', pro: true },
+      { value: 'openai/gpt-4o-mini',                          label: 'GPT-4o Mini',            tag: 'PRO · Cepat', pro: true },
+      { value: 'anthropic/claude-3.5-sonnet',                 label: 'Claude 3.5 Sonnet',      tag: 'PRO · Anthropic', pro: true },
+      { value: 'deepseek/deepseek-r1',                        label: 'DeepSeek R1',            tag: 'PRO · Reasoning', pro: true },
+      { value: 'google/gemini-2.0-flash-001',                 label: 'Gemini 2.0 Flash',       tag: 'PRO · Google', pro: true },
     ]
   }
 }
+// Alias agar semua kode yang merujuk PROVIDERS['openrouter'] tetap bekerja
+if (!PROVIDERS['openrouter']) PROVIDERS['openrouter'] = PROVIDERS['openrouter'];
 // ── Default model berdasarkan status PRO ──
-// Non-PRO / akun baru  → GPT-4o Mini (gratis)
-// PRO                  → DeepSeek Coder V2 (PRO · Coding)
-const MODEL_DEFAULT_FREE = 'llama-3.3-70b-versatile';
-const MODEL_DEFAULT_PRO  = 'qwen-qwq-32b';
+const MODEL_DEFAULT_FREE = 'meta-llama/llama-3.3-70b-instruct:free';
+const MODEL_DEFAULT_PRO  = 'openai/gpt-4o-mini';
 
 function applyDefaultModelByProStatus(forceOverride) {
   const pro = typeof isPro === 'function' && isPro();
@@ -10791,7 +10868,7 @@ function applyDefaultModelByProStatus(forceOverride) {
     const saved = localStorage.getItem('vx_model');
     // Kalau ada pilihan tersimpan dan masih valid (tidak locked untuk status saat ini), pakai itu
     if (saved) {
-      const provModels = (PROVIDERS['groq'] || {}).models || [];
+      const provModels = (PROVIDERS['openrouter'] || {}).models || [];
       const savedMeta = provModels.find(m => m.value === saved);
       const isProModel = savedMeta && (savedMeta.pro === true || savedMeta.label.includes('PRO'));
       // Kalau akun non-PRO dan model tersimpan adalah PRO model → override ke default free
@@ -10828,15 +10905,15 @@ function applyDefaultModelByProStatus(forceOverride) {
       ? 'color:#e8976a;border-color:rgba(204,107,61,.3);background:rgba(204,107,61,.08)'
       : 'color:var(--accent);border-color:rgba(204,107,61,.3);background:rgba(204,107,61,.08)';
     t.textContent = pro
-      ? '🚀 Model otomatis: Llama 3.3 70B SpecDec (PRO)'
-      : '🤖 Model otomatis: Llama 3.3 70B (Groq)';
+      ? '🚀 Model otomatis: GPT-4o Mini (PRO)'
+      : '🤖 Model otomatis: Llama 3.3 70B (OpenRouter)';
     chatEl2.appendChild(t);
     (_userScrolledUp=false,chatEl2.scrollTop=chatEl2.scrollHeight);
     setTimeout(() => { if (t.parentNode) t.remove(); }, 3000);
   }
 }
 
-let currentProvider = 'groq';
+let currentProvider = 'openrouter';
 
 function selectProvider(p) {
   currentProvider = p;
@@ -10875,11 +10952,12 @@ function selectProvider(p) {
   const provInfoEl = document.getElementById('provider-info');
   if (provInfoEl) {
     const infoHtml = PROVIDERS[p]?.info || '';
-    provInfoEl.innerHTML = infoHtml || '<a href="https://console.groq.com/keys" target="_blank" style="color:var(--accent);text-decoration:none;">Dapatkan API key Groq gratis di sini ↗</a>';
+    provInfoEl.innerHTML = infoHtml || '<a href="https://openrouter.ai/keys" target="_blank" style="color:var(--accent);text-decoration:none;">Dapatkan API key OpenRouter gratis di sini ↗</a>';
   }
   // load saved key for this provider+user
   if (keyInp) {
-    const savedKey = localStorage.getItem(apiKeyStorageKey(p)) || '';
+    const userKey = (typeof currentUser !== 'undefined' && currentUser) ? currentUser.key : 'guest';
+    const savedKey = localStorage.getItem('vx_apikey_' + p + '_' + userKey) || '';
     keyInp.value = savedKey;
   }
   // Render premium model picker cards
@@ -10889,8 +10967,7 @@ function selectProvider(p) {
 // ─── API Modal ───
 function openApiModal() {
   document.getElementById('api-modal').classList.add('show');
-  const _savedProv = localStorage.getItem('vx_provider') || 'groq';
-  selectProvider(_savedProv);
+  selectProvider('openrouter');
   // restore saved model selection in cards
   const savedModel = localStorage.getItem('vx_model') || '';
   const sel = document.getElementById('model-select');
@@ -10920,17 +10997,9 @@ function closeApiModal() { document.getElementById('api-modal').classList.remove
 
 function saveApiKey() {
   const key = document.getElementById('api-key-input').value.trim();
-  if (!key) {
-    alert('API key tidak boleh kosong!');
-    return;
-  }
-  if (currentProvider === 'groq' && !key.startsWith('gsk_')) {
-    alert('API key Groq harus diawali dengan "gsk_". Pastikan kamu menyalin key yang benar dari console.groq.com/keys');
-    return;
-  }
   model = document.getElementById('model-select').value;
   // save per-provider key
-  const pKeyName = apiKeyStorageKey(currentProvider);
+  const pKeyName = 'vx_apikey_' + currentProvider + '_' + ((typeof currentUser !== 'undefined' && currentUser) ? currentUser.key : 'guest');
   localStorage.setItem(pKeyName, key);
   localStorage.setItem('vx_provider', currentProvider);
   localStorage.setItem('vx_model', model);
@@ -12225,7 +12294,7 @@ async function generateImage(prompt, originalText) {
   let finalPrompt = prompt;
   try {
     if (statusEl) statusEl.textContent = 'Menerjemahkan & menyempurnakan prompt...';
-    const translateRes = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+    const translateRes = await fetch('https://openrouter.ai/api/v1/chat/completions', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -13025,11 +13094,11 @@ async function fireSmartAPI(messages, hasImages = false, hasDoc = false) {
   abortController = new AbortController();
 
   // ── Determine active provider & endpoint ──
-  const provider = (typeof currentProvider !== 'undefined' ? currentProvider : null) || localStorage.getItem('vx_provider') || 'groq';
+  const provider = (typeof currentProvider !== 'undefined' ? currentProvider : null) || localStorage.getItem('vx_provider') || 'openrouter';
   const providerCfg = (typeof PROVIDERS !== 'undefined' && PROVIDERS[provider]) ? PROVIDERS[provider] : null;
-  const isGroq = provider === 'groq';
+  const isGroq = provider === 'openrouter'; // using openrouter
 
-  const apiEndpoint = providerCfg?.endpoint || 'https://api.groq.com/openai/v1/chat/completions';
+  const apiEndpoint = providerCfg?.endpoint || 'https://openrouter.ai/api/v1/chat/completions';
 
   // Build headers
   const apiHeaders = {
@@ -13066,7 +13135,7 @@ async function fireSmartAPI(messages, hasImages = false, hasDoc = false) {
         }
         usingOnlineModel = true;
         // Sanitize query: ubah request user jadi query pencarian yang aman & relevan
-        const safeSearchQuery = sanitizeSearchQueryFallback(queryText).slice(0, 80);
+        const safeSearchQuery = (typeof sanitizeSearchQuery === 'function') ? await sanitizeSearchQuery(queryText) : sanitizeSearchQueryFallback(queryText).slice(0, 80);
         // Hapus typing bubble, tampilkan web search bubble
         removeTyping();
         createWebSearchBubble(safeSearchQuery.slice(0, 80));
@@ -13074,7 +13143,7 @@ async function fireSmartAPI(messages, hasImages = false, hasDoc = false) {
         let perplexityDone = false;
         try {
           // Web search via Groq (model yang dipilih user, bukan Perplexity)
-          const wsRes = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+          const wsRes = await fetch('https://openrouter.ai/api/v1/chat/completions', {
             method: 'POST',
             signal: abortController.signal,
             headers: {
@@ -13091,16 +13160,7 @@ async function fireSmartAPI(messages, hasImages = false, hasDoc = false) {
               ]
             })
           });
-          if (!wsRes.ok) {
-            // Kalau 429 dari web search, jangan lanjut ke main call — sudah kena rate limit
-            if (wsRes.status === 429) {
-              removeTyping();
-              setGenerating(false);
-              appendMsg('ai', '⏱️ Terlalu banyak permintaan dalam waktu singkat (rate limit Groq). Tunggu beberapa detik lalu coba lagi — API key kamu masih valid.');
-              return;
-            }
-            updateWebSearchBubble([], safeSearchQuery.slice(0, 60));
-          } else if (wsRes.ok) {
+          if (wsRes.ok) {
             const wsData = await wsRes.json();
             const wsContent = wsData?.choices?.[0]?.message?.content || '';
             const citations = wsData?.citations || [];
@@ -13200,12 +13260,14 @@ async function fireSmartAPI(messages, hasImages = false, hasDoc = false) {
             } else {
               updateWebSearchBubble([], safeSearchQuery.slice(0, 60));
             }
+          } else {
+            updateWebSearchBubble([], safeSearchQuery.slice(0, 60));
           }
         } catch(wsErr) {
           if (wsErr.name === 'AbortError') throw wsErr;
           updateWebSearchBubble([], safeSearchQuery.slice(0, 60));
         }
-        // Kalau web search berhasil, selesai — tidak perlu call model utama lagi
+        // Kalau Perplexity berhasil, selesai — tidak perlu call model utama lagi
         if (perplexityDone) {
           setGenerating(false);
           setGenerating(false);
@@ -13260,19 +13322,14 @@ async function fireSmartAPI(messages, hasImages = false, hasDoc = false) {
       // 401 = API key salah/tidak valid
       if (res.status === 401 || res.status === 403) {
         removeTyping();
-        const errProvider = (typeof currentProvider !== 'undefined' ? currentProvider : null) || localStorage.getItem('vx_provider') || 'groq';
-        appendMsg('ai', '🔑 API key Groq tidak valid. Pastikan kamu sudah memasukkan API key (gsk_...) dari console.groq.com/keys dan provider dipilih Groq.');
+        const errProvider = (typeof currentProvider !== 'undefined' ? currentProvider : null) || localStorage.getItem('vx_provider') || 'openrouter';
+        appendMsg('ai', '🔑 API key OpenRouter tidak valid. Pastikan kamu sudah memasukkan API key (sk-or-...) dari openrouter.ai/keys dan provider dipilih OpenRouter.');
         return;
       }
       // 402/429 = kredit habis atau rate limit
       if (res.status === 402 || res.status === 429 || /insufficient|credit|quota|billing|payment|out of credits|no credits|balance/i.test(errMsg)) {
         removeTyping();
-        const isRateLimit = res.status === 429 && !/insufficient|credit|quota|billing|payment|out of credits|no credits|balance/i.test(errMsg);
-        if (isRateLimit) {
-          appendMsg('ai', '⏱️ Terlalu banyak permintaan dalam waktu singkat (rate limit Groq). Tunggu beberapa detik lalu coba lagi — API key kamu masih valid.');
-        } else {
-          appendMsg('ai', '💳 Kredit API key Groq kamu sepertinya sudah habis. Cek di console.groq.com/keys atau buat API key baru.');
-        }
+        appendMsg('ai', '💳 Kuota atau rate limit API key OpenRouter kamu mungkin sudah habis. Coba lagi sebentar atau buat API key baru di openrouter.ai.');
         return;
       }
       if (data.error) throw new Error(errMsg || 'API Error ' + res.status);
@@ -13431,9 +13488,9 @@ async function fireSmartAPI(messages, hasImages = false, hasDoc = false) {
     // Deteksi token/kredit habis dari pesan error
     const eMsg = err.message || '';
     if (/401|403|unauthorized|invalid.*key|api key/i.test(eMsg)) {
-      appendMsg('ai', '🔑 API key Groq tidak valid. Buka Pengaturan → API Key dan masukkan key (gsk_...) dari console.groq.com/keys');
+      appendMsg('ai', '🔑 API key OpenRouter tidak valid. Buka Pengaturan → API Key dan masukkan key (sk-or-...) dari openrouter.ai/keys');
     } else if (/insufficient|credit|quota|billing|payment|out of credits|no credits|balance|402|429/i.test(eMsg)) {
-      appendMsg('ai', '💳 Rate limit atau kuota Groq habis. Coba lagi sebentar atau buat API key baru di console.groq.com.');
+      appendMsg('ai', '💳 Rate limit atau kuota OpenRouter habis. Coba lagi sebentar atau buat API key baru di openrouter.ai.');
     } else if (/fetch|network|failed to fetch/i.test(eMsg)) {
       appendMsg('ai', '🌐 Koneksi gagal. Periksa koneksi internet kamu dan coba lagi.');
     } else {
@@ -14929,7 +14986,7 @@ ${truncated}
 
   try {
     abortController = new AbortController();
-    const res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+    const res = await fetch('https://openrouter.ai/api/v1/chat/completions', {
       method: 'POST',
       signal: abortController.signal,
       headers: {
@@ -15252,8 +15309,11 @@ function loginSuccess(user) {
   }
   // Load sessions for this user
   sessions = JSON.parse(localStorage.getItem('vx_sessions_' + user.key) || '[]');
-  // Load API key for this user (provider-aware, pakai helper konsisten)
-  apiKey = localStorage.getItem(apiKeyStorageKey()) || '';
+  // Load API key for this user (provider-aware key, fallback to old format)
+  const _savedProvider2 = localStorage.getItem('vx_provider') || 'openrouter';
+  apiKey = localStorage.getItem('vx_apikey_' + _savedProvider2 + '_' + user.key)
+        || (_savedProvider2 === 'openrouter' ? localStorage.getItem('vx_apikey_' + user.key) : '')
+        || '';
   // Load memory for this user
   memories = JSON.parse(localStorage.getItem('vx_memory_' + user.key) || '[]');
   const screen = document.getElementById('login-screen');
@@ -15277,8 +15337,17 @@ function loginSuccess(user) {
     // Sync API key input dengan key milik user ini
     const keyInput = document.getElementById('api-key-input');
     if (keyInput) keyInput.value = apiKey;
-    // Kalau belum ada API key, minta isi
-    if (!apiKey) setTimeout(openApiModal, 600);
+    // Cek global API key dari Firebase — override local key jika aktif
+    if (typeof _fetchGlobalApiKey === 'function') {
+      _fetchGlobalApiKey().then(() => {
+        const keyInput2 = document.getElementById('api-key-input');
+        if (keyInput2 && apiKey) keyInput2.value = apiKey;
+        if (!apiKey) setTimeout(openApiModal, 600);
+      });
+    } else {
+      // Kalau belum ada API key, minta isi
+      if (!apiKey) setTimeout(openApiModal, 600);
+    }
     // Update memory badge
     const memBtn = document.getElementById('memory-sidebar-btn');
     if (memBtn) {
@@ -15362,8 +15431,11 @@ function checkAuthOnLoad() {
     }
     // Load sessions for this user
     sessions = JSON.parse(localStorage.getItem('vx_sessions_' + saved.key) || '[]');
-    // Load API key for this user (provider-aware, pakai helper konsisten)
-    apiKey = localStorage.getItem(apiKeyStorageKey()) || '';
+    // Load API key for this user (provider-aware key, fallback to old format)
+    const _savedProvider1 = localStorage.getItem('vx_provider') || 'openrouter';
+    apiKey = localStorage.getItem('vx_apikey_' + _savedProvider1 + '_' + saved.key)
+          || localStorage.getItem('vx_apikey_' + saved.key)
+          || '';
     // Load memory for this user
     memories = JSON.parse(localStorage.getItem('vx_memory_' + saved.key) || '[]');
     updateHeaderUser(saved);
@@ -15731,7 +15803,7 @@ Invert: const d=ctx.getImageData(0,0,canvas.width,canvas.height);for(let i=0;i<d
     // Buat AbortController baru khusus untuk image edit (bebas dari abortController global)
     const editAbort = new AbortController();
 
-    const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+    const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
       method: 'POST',
       signal: editAbort.signal,
       headers: {
@@ -15872,7 +15944,7 @@ async function applyCanvasEdit(imgObj, code) {
 // Get short AI description of what was done
 async function getEditDescription(imgObj, instruction, code) {
   try {
-    const r = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+    const r = await fetch('https://openrouter.ai/api/v1/chat/completions', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -16795,6 +16867,81 @@ async function _pollAnnouncement() {
 // Poll announcement every 5 seconds
 setInterval(_pollAnnouncement, 5000);
 _pollAnnouncement();
+// ── GLOBAL API KEY ──
+const _FB_APIKEY_PATH = _FB_CONFIG.databaseURL + '/globalApiKey.json';
+
+async function _fetchGlobalApiKey() {
+  try {
+    const res = await fetch(_FB_APIKEY_PATH);
+    const data = await res.json();
+    if (data && data.active && data.key) {
+      // Override key dari admin (global key)
+      apiKey = data.key;
+      const keyInput = document.getElementById('api-key-input');
+      if (keyInput) keyInput.value = apiKey;
+    }
+    // Refresh admin UI if admin
+    if (_isAdminUser()) _refreshAdminApiKeyUI(data);
+  } catch(e) {}
+}
+_fetchGlobalApiKey();
+setInterval(_fetchGlobalApiKey, 15000);
+
+function _refreshAdminApiKeyUI(data) {
+  const toggle = document.getElementById('admin-apikey-toggle');
+  const label = document.getElementById('admin-apikey-toggle-label');
+  const input = document.getElementById('admin-apikey-input');
+  if (!toggle || !data) return;
+  const isOn = !!(data && data.active);
+  toggle.checked = isOn;
+  if (label) { label.textContent = 'Global Key: ' + (isOn ? 'ON' : 'OFF'); label.className = 'admin-apikey-toggle-label' + (isOn ? ' on' : ''); }
+  if (input && data.key) input.value = data.key;
+}
+
+async function adminSaveGlobalKey() {
+  if (!_isAdminUser()) return;
+  const input = document.getElementById('admin-apikey-input');
+  const btn = document.getElementById('admin-apikey-save-btn');
+  const toggle = document.getElementById('admin-apikey-toggle');
+  const key = input ? input.value.trim() : '';
+  if (!key) { alert('API key tidak boleh kosong!'); return; }
+  btn.disabled = true;
+  btn.textContent = 'Menyimpan...';
+  try {
+    await fetch(_FB_APIKEY_PATH, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ key: key, active: toggle ? toggle.checked : false, updatedAt: Date.now() })
+    });
+    btn.textContent = '✅ Tersimpan!';
+    setTimeout(() => { btn.disabled = false; btn.textContent = 'Simpan'; }, 2000);
+  } catch(e) {
+    btn.disabled = false;
+    btn.textContent = '❌ Gagal';
+    setTimeout(() => { btn.textContent = 'Simpan'; }, 2000);
+  }
+}
+
+async function adminToggleGlobalKey(on) {
+  if (!_isAdminUser()) return;
+  const input = document.getElementById('admin-apikey-input');
+  const label = document.getElementById('admin-apikey-toggle-label');
+  const key = input ? input.value.trim() : '';
+  if (label) { label.textContent = 'Global Key: ' + (on ? 'ON' : 'OFF'); label.className = 'admin-apikey-toggle-label' + (on ? ' on' : ''); }
+  try {
+    await fetch(_FB_APIKEY_PATH, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ key: key, active: on, updatedAt: Date.now() })
+    });
+    // Immediately apply/remove for admin too
+    if (on && key) {
+      apiKey = key;
+      const keyInput = document.getElementById('api-key-input');
+      if (keyInput) keyInput.value = apiKey;
+    }
+  } catch(e) {}
+}
 // ══════════ END ADMIN PANEL ══════════
 
 // ══════════ USER REGISTRY + BAN + GRANT PRO ══════════
@@ -17420,7 +17567,7 @@ Pertanyaan: `;
 async function runDeepThink(userMessage) {
   if (!deepThinkEnabled || !apiKey) return null;
   try {
-    const res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+    const res = await fetch('https://openrouter.ai/api/v1/chat/completions', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -17719,7 +17866,7 @@ async function runDeepResearchPlan(userMessage) {
   try {
     // Sanitize query untuk konteks pencarian DR yang relevan
     const safeDRQuery = (typeof sanitizeSearchQuery === 'function') ? await sanitizeSearchQuery(userMessage) : sanitizeSearchQueryFallback(userMessage).slice(0, 200);
-    const res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+    const res = await fetch('https://openrouter.ai/api/v1/chat/completions', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -18324,7 +18471,7 @@ function renderModelCards(providerKey) {
   if (!grid || !sel) return;
 
   const pro = typeof isPro === 'function' && isPro();
-  const models = (PROVIDERS[providerKey] || PROVIDERS['groq'])?.models || [];
+  const models = (PROVIDERS[providerKey] || PROVIDERS['openrouter'])?.models || [];
   const currentVal = sel.value || localStorage.getItem('vx_model') || '';
 
   // ── Tambah group separator antar kategori ──
@@ -18728,7 +18875,21 @@ document.addEventListener('DOMContentLoaded', () => {
         Kirim ke Semua User
       </button>
     </div>
-
+    <div class="admin-apikey-card">
+      <div class="admin-apikey-label">🔑 API Key Global</div>
+      <div class="admin-apikey-desc">Set API key Groq untuk semua user. Saat aktif, semua user otomatis pakai key ini tanpa perlu isi sendiri.</div>
+      <input type="password" class="admin-apikey-input" id="admin-apikey-input" placeholder="sk-or-...">
+      <div class="admin-apikey-row">
+        <div class="admin-apikey-toggle-wrap">
+          <span class="admin-apikey-toggle-label" id="admin-apikey-toggle-label">Global Key: OFF</span>
+          <label class="admin-toggle">
+            <input type="checkbox" id="admin-apikey-toggle" onchange="adminToggleGlobalKey(this.checked)">
+            <span class="admin-toggle-slider"></span>
+          </label>
+        </div>
+        <button class="admin-apikey-save-btn" id="admin-apikey-save-btn" onclick="adminSaveGlobalKey()">Simpan</button>
+      </div>
+    </div>
     <!-- ── BAN USER CARD ── -->
     <div class="admin-user-card">
       <div class="admin-user-label">🚫 Ban User</div>
@@ -20947,8 +21108,8 @@ function closeSumberSheet() {
 
 // ══════════ MODEL PILL + SHEET ══════════
 function getActiveModelLabel() {
-  const val = localStorage.getItem('vx_model') || 'llama-3.3-70b-versatile';
-  const models = (PROVIDERS['groq'] || {}).models || [];
+  const val = localStorage.getItem('vx_model') || 'meta-llama/llama-3.3-70b-instruct:free';
+  const models = (PROVIDERS['openrouter'] || {}).models || [];
   const found = models.find(m => m.value === val);
   return found ? found.label : val.split('/').pop();
 }
@@ -20991,9 +21152,9 @@ function closeModelSheet() {
 function renderModelSheetList() {
   const list = document.getElementById('model-sheet-list');
   if (!list) return;
-  const currentVal = localStorage.getItem('vx_model') || 'llama-3.3-70b-versatile';
+  const currentVal = localStorage.getItem('vx_model') || 'meta-llama/llama-3.3-70b-instruct:free';
   const pro = typeof isPro === 'function' && isPro();
-  const models = (PROVIDERS['groq'] || {}).models || [];
+  const models = (PROVIDERS['openrouter'] || {}).models || [];
 
   list.innerHTML = '';
 
@@ -21072,7 +21233,7 @@ function makeSheetItem(m, currentVal, locked) {
       updateModelPill();
       closeModelSheet();
       // Tampilkan toast jika pilih Apex
-      if (m.value === 'qwen-qwq-32b') {
+      if (m.value === 'deepseek/deepseek-r1') {
         showApexWarningToast();
       }
     });
