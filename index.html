@@ -7973,7 +7973,7 @@ function apiKeyStorageKey(providerOverride) {
 
 // ── Migrasi provider lama → groq ──
 (function migrateToGroq() {
-  const validGroqModels = ['llama-3.3-70b-versatile','llama-3.1-8b-instant','gemma2-9b-it','meta-llama/llama-4-scout-17b-16e-instruct','meta-llama/llama-4-maverick-17b-128e-instruct','qwen-qwq-32b','compound-beta'];
+  const validGroqModels = ['llama-3.3-70b-versatile','llama-3.1-8b-instant','gemma2-9b-it','llama-3.2-3b-preview','qwen-qwq-32b','llama3-groq-70b-8192-tool-use-preview'];
 
   // Paksa provider ke groq kalau masih pakai provider lama
   const savedProvider = localStorage.getItem('vx_provider');
@@ -7994,7 +7994,7 @@ let model = localStorage.getItem('vx_model') || 'llama-3.3-70b-versatile';
 // ── Model tiers ──
 const MODEL_FREE_NORMAL = 'llama-3.3-70b-versatile';
 const MODEL_FREE_SMART  = 'llama-3.3-70b-versatile';
-const MODEL_PRO_NORMAL  = 'meta-llama/llama-4-maverick-17b-128e-instruct';
+const MODEL_PRO_NORMAL  = 'qwen-qwq-32b';
 const MODEL_PRO_SMART   = 'qwen-qwq-32b';
 
 function getActiveModel(mode) {
@@ -10765,14 +10765,13 @@ const PROVIDERS = {
     info: '<a href="https://console.groq.com/keys" target="_blank" style="color:var(--accent);text-decoration:none;">Dapatkan API key Groq gratis di sini ↗</a>',
     models: [
       // ── Gratis (Free Tier) ──
-      { value: 'llama-3.3-70b-versatile',                       label: 'Llama 3.3 70B',         tag: 'Gratis · Serba bisa' },
-      { value: 'llama-3.1-8b-instant',                          label: 'Llama 3.1 8B Instant',  tag: 'Gratis · Ultra Cepat' },
-      { value: 'gemma2-9b-it',                                  label: 'Gemma 2 9B',            tag: 'Gratis · Google' },
-      { value: 'meta-llama/llama-4-scout-17b-16e-instruct',     label: 'Llama 4 Scout',         tag: 'Gratis · Terbaru' },
+      { value: 'llama-3.3-70b-versatile', label: 'Llama 3.3 70B',        tag: 'Gratis · Serba bisa' },
+      { value: 'llama-3.1-8b-instant',    label: 'Llama 3.1 8B Instant', tag: 'Gratis · Ultra Cepat' },
+      { value: 'gemma2-9b-it',            label: 'Gemma 2 9B',           tag: 'Gratis · Google' },
+      { value: 'llama-3.2-3b-preview',    label: 'Llama 3.2 3B',         tag: 'Gratis · Ringan' },
       // ── PRO ──
-      { value: 'meta-llama/llama-4-maverick-17b-128e-instruct', label: 'Llama 4 Maverick',      tag: 'PRO · Konteks Panjang', pro: true },
-      { value: 'qwen-qwq-32b',                                  label: 'Qwen QwQ 32B',          tag: 'PRO · Reasoning', pro: true },
-      { value: 'compound-beta',                                  label: 'Compound Beta',         tag: 'PRO · Agentic', pro: true },
+      { value: 'qwen-qwq-32b',            label: 'Qwen QwQ 32B',         tag: 'PRO · Reasoning', pro: true },
+      { value: 'llama3-groq-70b-8192-tool-use-preview', label: 'Llama 3 70B Tool Use', tag: 'PRO · Tool Use', pro: true },
     ]
   }
 }
@@ -10780,7 +10779,7 @@ const PROVIDERS = {
 // Non-PRO / akun baru  → GPT-4o Mini (gratis)
 // PRO                  → DeepSeek Coder V2 (PRO · Coding)
 const MODEL_DEFAULT_FREE = 'llama-3.3-70b-versatile';
-const MODEL_DEFAULT_PRO  = 'meta-llama/llama-4-maverick-17b-128e-instruct';
+const MODEL_DEFAULT_PRO  = 'qwen-qwq-32b';
 
 function applyDefaultModelByProStatus(forceOverride) {
   const pro = typeof isPro === 'function' && isPro();
