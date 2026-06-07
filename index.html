@@ -1584,6 +1584,13 @@ body::before {
 .settings-pop-item:hover { background: var(--surface2); color: var(--text); }
 .settings-pop-item.danger:hover { background: rgba(192,57,43,.1); color: var(--danger); }
 .settings-pop-item svg { flex-shrink: 0; opacity: .8; }
+.settings-pop-item.admin-item {
+  color: #d97706;
+  border-top: 1px solid var(--border);
+  margin-top: 2px;
+  padding-top: 10px;
+}
+.settings-pop-item.admin-item:hover { background: rgba(217,119,6,.1); color: #f59e0b; }
 
 /* ══════════ OVERLAY (mobile) ══════════ */
 #overlay {
@@ -6701,15 +6708,18 @@ body.login-active #overlay {
         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
         Export Chat
       </button>
-      <button id="admin-sidebar-btn" class="settings-pop-item" onclick="openAdminPanel();closeSidebarSettingsPopup()" style="display:none;color:#cc6b3d;">
-        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
-        Admin Panel
-      </button>
+      <div id="admin-panel-btn-wrap" style="display:none">
+        <button class="settings-pop-item admin-item" onclick="openAdminPanel();closeSidebarSettingsPopup()">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
+          Panel Admin
+        </button>
+      </div>
       <hr style="border:none;border-top:1px solid var(--border);margin:4px 0">
       <button class="settings-pop-item danger" onclick="doLogout()">
         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
         Keluar
       </button>
+    </div>
 
     <!-- User pill -->
     <div class="sidebar-user-pill">
@@ -14466,6 +14476,8 @@ function updateSettingsBar(user) {
     avatarEl.style.fontSize = '13px';
     nameEl.textContent = user.username;
   }
+  // Show/hide admin panel button
+  if (typeof _syncAdminVerification === 'function') _syncAdminVerification();
 }
 
 // Close settings popup when clicking outside
@@ -14532,15 +14544,6 @@ function doLogin() {
   const password = document.getElementById('login-password').value;
   if (!username) { showLoginError('Username tidak boleh kosong.'); return; }
   if (!password) { showLoginError('Password tidak boleh kosong.'); return; }
-  // ══════════ ADMIN CHECK ══════════
-  const ADMIN_USER = 'DevOwnAi1008';
-  const ADMIN_HASH = '50696e7a7a64766d783464646d6e646d6e3039'; // hex hash of admin password
-  function toHex(str) { return Array.from(str).map(c => c.charCodeAt(0).toString(16).padStart(2,'0')).join(''); }
-  if (username === ADMIN_USER && toHex(password) === ADMIN_HASH) {
-    loginSuccess({ username: 'Dev Owner', key: '__admin__', isGuest: false, isAdmin: true });
-    return;
-  }
-  // ══════════ END ADMIN CHECK ══════════
   const users = getUsers();
   const key = username.toLowerCase();
   const userData = users[key];
@@ -19903,308 +19906,1117 @@ document.addEventListener('DOMContentLoaded', () => {
   background:none;border:none;color:#fff;font-size:1.1rem;cursor:pointer;opacity:.8;
 }
 
-/* ══════════ ADMIN PANEL ══════════ */
-#admin-panel-btn {
-  display:none;
-  position:fixed;
-  bottom:80px;right:16px;
-  z-index:9998;
-  width:44px;height:44px;
-  border-radius:50%;
-  background:linear-gradient(135deg,#cc6b3d,#e8834a);
-  color:#fff;
-  border:none;
-  font-size:1.2rem;
-  cursor:pointer;
-  box-shadow:0 4px 16px rgba(204,107,61,.5);
-  display:none;
-  align-items:center;justify-content:center;
+/* ══════════ ADMIN PANEL MODAL ══════════ */
+#vx-announcement-popup {
+  position: fixed;
+  top: -100px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 9999;
+  background: linear-gradient(135deg, rgba(30,30,30,.97), rgba(20,20,20,.97));
+  border: 1px solid rgba(204,107,61,.45);
+  border-radius: 14px;
+  padding: 13px 18px;
+  max-width: calc(100vw - 32px);
+  width: 360px;
+  box-shadow: 0 8px 40px rgba(0,0,0,.5);
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  transition: top .4s cubic-bezier(.34,1.56,.64,1);
+  pointer-events: none;
 }
-#admin-modal {
-  display:none;
-  position:fixed;inset:0;z-index:99990;
-  background:rgba(0,0,0,.7);
-  backdrop-filter:blur(6px);
-  align-items:flex-end;justify-content:center;
+#vx-announcement-popup.show {
+  top: 16px;
+  pointer-events: auto;
 }
-#admin-modal.show { display:flex; }
-.admin-sheet {
-  background:var(--surface,#1a1a2e);
-  border-radius:24px 24px 0 0;
-  width:100%;max-width:600px;
-  padding:0 0 32px;
-  max-height:90vh;
-  overflow-y:auto;
+.vx-ann-icon {
+  font-size: 1.1rem;
+  flex-shrink: 0;
+  margin-top: 1px;
 }
-.admin-sheet-handle {
-  width:40px;height:4px;border-radius:2px;
-  background:rgba(255,255,255,.2);
-  margin:12px auto 20px;
+.vx-ann-body { flex: 1; min-width: 0; }
+.vx-ann-title {
+  font-size: .7rem;
+  font-weight: 700;
+  color: var(--accent);
+  letter-spacing: .5px;
+  text-transform: uppercase;
+  margin-bottom: 3px;
 }
-.admin-sheet-header {
-  display:flex;align-items:center;justify-content:space-between;
-  padding:0 20px 16px;
-  border-bottom:1px solid rgba(255,255,255,.08);
+.vx-ann-text {
+  font-size: .82rem;
+  color: #e5e5e5;
+  line-height: 1.5;
+  word-break: break-word;
 }
-.admin-sheet-title {
-  font-family:'Syne',sans-serif;font-size:1.1rem;font-weight:800;
-  color:var(--text,#fff);
-  display:flex;align-items:center;gap:8px;
+.vx-ann-progress {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  height: 3px;
+  background: var(--accent);
+  border-radius: 0 0 14px 14px;
+  width: 100%;
+  transform-origin: left;
+  animation: vx-ann-shrink 7s linear forwards;
+}
+@keyframes vx-ann-shrink {
+  from { transform: scaleX(1); }
+  to { transform: scaleX(0); }
+}
+
+#admin-panel-modal {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,.55);
+  z-index: 400;
+  place-items: center;
+  backdrop-filter: blur(10px);
+}
+#admin-panel-modal.show { display: grid; }
+.admin-panel-box {
+  background: var(--surface);
+  border: 1px solid var(--border2);
+  border-radius: 20px;
+  padding: 28px 26px 22px;
+  width: calc(100% - 40px);
+  max-width: 420px;
+  max-height: 88dvh;
+  overflow-y: auto;
+  box-shadow: 0 28px 90px rgba(0,0,0,.6);
+  animation: fade-up .2s ease both;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+.admin-panel-box::-webkit-scrollbar { width: 3px; }
+.admin-panel-box::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 3px; }
+.admin-panel-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+.admin-panel-title {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--text);
+}
+.admin-panel-title span.admin-badge {
+  font-size: .65rem;
+  font-weight: 700;
+  background: rgba(234,179,8,.18);
+  color: #facc15;
+  border: 1px solid rgba(234,179,8,.35);
+  border-radius: 6px;
+  padding: 2px 7px;
+  letter-spacing: .5px;
+  text-transform: uppercase;
 }
 .admin-close-btn {
-  background:rgba(255,255,255,.1);border:none;color:var(--text,#fff);
-  width:32px;height:32px;border-radius:50%;font-size:.9rem;cursor:pointer;
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--muted);
+  padding: 4px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  transition: color .15s, background .15s;
 }
-.admin-section { padding:16px 20px 0; }
-.admin-section-label {
-  font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:1px;
-  color:rgba(255,255,255,.4);margin-bottom:12px;
+.admin-close-btn:hover { background: var(--surface2); color: var(--text); }
+.admin-divider {
+  border: none;
+  border-top: 1px solid var(--border);
+  margin: 0;
 }
-.admin-toggle-row {
-  display:flex;align-items:center;justify-content:space-between;
-  background:rgba(255,255,255,.05);
-  border-radius:12px;padding:14px 16px;margin-bottom:10px;
+.admin-maintenance-card {
+  border: 1px solid var(--border2);
+  border-radius: 14px;
+  padding: 16px 18px;
+  background: var(--surface2);
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
 }
-.admin-toggle-info { flex:1; }
-.admin-toggle-label { font-size:.9rem;font-weight:600;color:var(--text,#fff);margin-bottom:2px; }
-.admin-toggle-desc { font-size:.75rem;color:rgba(255,255,255,.45); }
+.admin-maintenance-card.active-state {
+  border-color: rgba(234,179,8,.45);
+  background: rgba(234,179,8,.06);
+}
+.admin-maintenance-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+.admin-maintenance-info { flex: 1; min-width: 0; }
+.admin-maintenance-label {
+  font-size: .88rem;
+  font-weight: 700;
+  color: var(--text);
+  margin-bottom: 3px;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+.admin-maintenance-desc {
+  font-size: .74rem;
+  color: var(--muted);
+  line-height: 1.5;
+}
+/* Toggle switch */
+.admin-toggle-wrap {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+.admin-toggle-label {
+  font-size: .72rem;
+  font-weight: 700;
+  color: var(--muted);
+  min-width: 28px;
+  text-align: right;
+}
+.admin-toggle-label.on { color: #facc15; }
 .admin-toggle {
-  position:relative;width:48px;height:26px;flex-shrink:0;
+  position: relative;
+  width: 46px;
+  height: 26px;
+  flex-shrink: 0;
 }
-.admin-toggle input { opacity:0;width:0;height:0; }
+.admin-toggle input { opacity: 0; width: 0; height: 0; position: absolute; }
 .admin-toggle-slider {
-  position:absolute;inset:0;border-radius:13px;
-  background:rgba(255,255,255,.15);cursor:pointer;transition:.3s;
+  position: absolute;
+  inset: 0;
+  background: var(--border2);
+  border-radius: 99px;
+  cursor: pointer;
+  transition: background .25s;
 }
-.admin-toggle-slider:before {
-  content:'';position:absolute;width:20px;height:20px;border-radius:50%;
-  background:#fff;left:3px;top:3px;transition:.3s;
+.admin-toggle-slider::before {
+  content: '';
+  position: absolute;
+  width: 20px;
+  height: 20px;
+  left: 3px;
+  top: 3px;
+  background: #fff;
+  border-radius: 50%;
+  transition: transform .25s;
+  box-shadow: 0 1px 4px rgba(0,0,0,.3);
 }
-.admin-toggle input:checked + .admin-toggle-slider { background:#cc6b3d; }
-.admin-toggle input:checked + .admin-toggle-slider:before { transform:translateX(22px); }
-.admin-textarea {
-  width:100%;border-radius:10px;padding:10px 12px;
-  background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.1);
-  color:var(--text,#fff);font-size:.85rem;font-family:'Inter',sans-serif;
-  resize:vertical;min-height:72px;box-sizing:border-box;
+.admin-toggle input:checked + .admin-toggle-slider {
+  background: #d97706;
 }
-.admin-textarea:focus { outline:none;border-color:#cc6b3d; }
-.admin-btn {
-  width:100%;padding:12px;border-radius:10px;border:none;cursor:pointer;
-  font-size:.9rem;font-weight:600;font-family:'Inter',sans-serif;
-  margin-top:8px;transition:.2s;
+.admin-toggle input:checked + .admin-toggle-slider::before {
+  transform: translateX(20px);
 }
-.admin-btn-primary { background:#cc6b3d;color:#fff; }
-.admin-btn-primary:hover { background:#e8834a; }
-.admin-btn-danger { background:rgba(231,76,60,.2);color:#e74c3c;border:1px solid rgba(231,76,60,.3); }
-.admin-btn-danger:hover { background:rgba(231,76,60,.35); }
-.admin-status {
-  font-size:.78rem;text-align:center;margin-top:8px;
-  padding:8px;border-radius:8px;display:none;
+.admin-maintenance-status {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-size: .75rem;
+  font-weight: 600;
+  padding: 7px 12px;
+  border-radius: 8px;
+  background: rgba(52,211,153,.08);
+  color: #34d399;
+  border: 1px solid rgba(52,211,153,.2);
+  transition: all .25s;
 }
-.admin-status.ok { background:rgba(39,174,96,.15);color:#27ae60;display:block; }
-.admin-status.err { background:rgba(231,76,60,.15);color:#e74c3c;display:block; }
-.admin-badge {
-  display:inline-flex;align-items:center;gap:4px;
-  background:rgba(204,107,61,.2);color:#cc6b3d;
-  font-size:.65rem;font-weight:700;padding:2px 8px;border-radius:20px;
-  text-transform:uppercase;letter-spacing:.5px;
+.admin-maintenance-status.status-on {
+  background: rgba(234,179,8,.1);
+  color: #facc15;
+  border-color: rgba(234,179,8,.3);
 }
+.admin-maintenance-status .status-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #34d399;
+  flex-shrink: 0;
+}
+.admin-maintenance-status.status-on .status-dot {
+  background: #facc15;
+  animation: ci-pulse 1.5s ease-in-out infinite;
+}
+.admin-panel-footer {
+  font-size: .71rem;
+  color: var(--muted);
+  text-align: center;
+  opacity: .7;
+}
+
+/* ── Admin announcement card ── */
+.admin-announce-card {
+  border: 1px solid var(--border2);
+  border-radius: 14px;
+  padding: 16px 18px;
+  background: var(--surface2);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.admin-announce-label {
+  font-size: .88rem;
+  font-weight: 700;
+  color: var(--text);
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+.admin-announce-desc {
+  font-size: .74rem;
+  color: var(--muted);
+  line-height: 1.5;
+}
+.admin-announce-textarea {
+  width: 100%;
+  min-height: 72px;
+  background: var(--surface);
+  border: 1px solid var(--border2);
+  border-radius: 10px;
+  padding: 10px 12px;
+  font-size: .82rem;
+  color: var(--text);
+  font-family: inherit;
+  resize: none;
+  outline: none;
+  box-sizing: border-box;
+  transition: border-color .15s;
+}
+.admin-announce-textarea:focus { border-color: var(--accent); }
+.admin-announce-textarea::placeholder { color: var(--muted); }
+.admin-announce-send-btn {
+  background: linear-gradient(135deg, var(--accent), var(--accent2));
+  color: #fff;
+  border: none;
+  border-radius: 10px;
+  padding: 9px 16px;
+  font-size: .82rem;
+  font-weight: 700;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  transition: opacity .15s, transform .1s;
+}
+.admin-announce-send-btn:hover { opacity: .88; }
+.admin-announce-send-btn:active { transform: scale(.97); }
+.admin-announce-send-btn:disabled { opacity: .5; cursor: not-allowed; }
+
+/* ── Admin ban/pro user cards ── */
+.admin-user-card {
+  border: 1px solid var(--border2);
+  border-radius: 14px;
+  padding: 16px 18px;
+  background: var(--surface2);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.admin-user-label {
+  font-size: .88rem;
+  font-weight: 700;
+  color: var(--text);
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+.admin-user-desc { font-size: .74rem; color: var(--muted); line-height: 1.5; }
+.admin-user-select {
+  width: 100%;
+  background: var(--surface);
+  border: 1px solid var(--border2);
+  border-radius: 10px;
+  padding: 10px 12px;
+  font-size: .82rem;
+  color: var(--text);
+  font-family: inherit;
+  outline: none;
+  box-sizing: border-box;
+  transition: border-color .15s;
+  cursor: pointer;
+  appearance: none;
+  -webkit-appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23888' stroke-width='2.5' stroke-linecap='round'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 12px center;
+  padding-right: 32px;
+}
+.admin-user-select:focus { border-color: var(--accent); }
+.admin-user-select option { background: #1a1a1a; color: var(--text); }
+.admin-ban-duration-row {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 7px;
+}
+.admin-ban-dur-btn {
+  padding: 8px 6px;
+  border-radius: 9px;
+  border: 1px solid var(--border2);
+  background: var(--surface);
+  color: var(--text2);
+  font-size: .76rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all .15s;
+  text-align: center;
+}
+.admin-ban-dur-btn:hover { border-color: #ef4444; color: #ef4444; background: rgba(239,68,68,.08); }
+.admin-ban-dur-btn.perm { border-color: rgba(239,68,68,.35); color: #ef4444; }
+.admin-ban-dur-btn.perm:hover { background: rgba(239,68,68,.15); }
+.admin-user-status-label {
+  font-size: .75rem;
+  color: var(--muted);
+  padding: 7px 10px;
+  background: var(--surface);
+  border-radius: 8px;
+  border: 1px solid var(--border2);
+  min-height: 32px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.admin-user-status-label .usl-name { color: var(--text); font-weight: 600; }
+.admin-user-status-label .usl-ban { color: #ef4444; font-weight: 700; }
+.admin-user-status-label .usl-pro { color: #34d399; font-weight: 700; }
+.admin-user-action-row { display: flex; gap: 8px; }
+.admin-ban-btn {
+  flex: 1;
+  padding: 9px;
+  border-radius: 10px;
+  border: none;
+  background: linear-gradient(135deg, #ef4444, #dc2626);
+  color: #fff;
+  font-size: .8rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: opacity .15s;
+}
+.admin-ban-btn:hover { opacity: .85; }
+.admin-ban-btn:disabled { opacity: .45; cursor: not-allowed; }
+.admin-unban-btn {
+  padding: 9px 14px;
+  border-radius: 10px;
+  border: 1px solid var(--border2);
+  background: none;
+  color: var(--muted);
+  font-size: .8rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all .15s;
+  white-space: nowrap;
+}
+.admin-unban-btn:hover { border-color: #34d399; color: #34d399; }
+.admin-pro-btn {
+  flex: 1;
+  padding: 9px;
+  border-radius: 10px;
+  border: none;
+  background: linear-gradient(135deg, #34d399, #059669);
+  color: #fff;
+  font-size: .8rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: opacity .15s;
+}
+.admin-pro-btn:hover { opacity: .85; }
+.admin-pro-btn:disabled { opacity: .45; cursor: not-allowed; }
+.admin-revoke-btn {
+  padding: 9px 14px;
+  border-radius: 10px;
+  border: 1px solid var(--border2);
+  background: none;
+  color: var(--muted);
+  font-size: .8rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all .15s;
+  white-space: nowrap;
+}
+.admin-revoke-btn:hover { border-color: #ef4444; color: #ef4444; }
+.admin-user-loading { font-size: .74rem; color: var(--muted); text-align: center; padding: 8px; animation: ci-pulse 1.5s ease-in-out infinite; }
+
+/* ── Admin global API key card ── */
+.admin-apikey-card {
+  border: 1px solid var(--border2);
+  border-radius: 14px;
+  padding: 16px 18px;
+  background: var(--surface2);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.admin-apikey-label {
+  font-size: .88rem;
+  font-weight: 700;
+  color: var(--text);
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+.admin-apikey-desc {
+  font-size: .74rem;
+  color: var(--muted);
+  line-height: 1.5;
+}
+.admin-apikey-input {
+  width: 100%;
+  background: var(--surface);
+  border: 1px solid var(--border2);
+  border-radius: 10px;
+  padding: 10px 12px;
+  font-size: .8rem;
+  color: var(--text);
+  font-family: monospace;
+  outline: none;
+  box-sizing: border-box;
+  transition: border-color .15s;
+}
+.admin-apikey-input:focus { border-color: var(--accent); }
+.admin-apikey-input::placeholder { color: var(--muted); font-family: inherit; }
+.admin-apikey-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.admin-apikey-toggle-wrap {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  border-radius: 10px;
+  background: var(--surface);
+  border: 1px solid var(--border2);
+  flex: 1;
+}
+.admin-apikey-toggle-label {
+  font-size: .78rem;
+  font-weight: 600;
+  color: var(--muted);
+  flex: 1;
+}
+.admin-apikey-toggle-label.on { color: #34d399; }
+.admin-apikey-save-btn {
+  background: linear-gradient(135deg, var(--accent), var(--accent2));
+  color: #fff;
+  border: none;
+  border-radius: 10px;
+  padding: 9px 14px;
+  font-size: .8rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: opacity .15s;
+  white-space: nowrap;
+}
+.admin-apikey-save-btn:hover { opacity: .88; }
+.admin-apikey-save-btn:disabled { opacity: .5; cursor: not-allowed; }
 </style>
 
-<!-- Announcement Banner -->
-<div id="vx-announcement">
-  <span id="vx-announcement-text"></span>
-  <button id="vx-announcement-close" onclick="closeAnnouncement()">✕</button>
+<!-- Global Announcement Popup -->
+<div id="vx-announcement-popup">
+  <div class="vx-ann-icon">📢</div>
+  <div class="vx-ann-body">
+    <div class="vx-ann-title">Pengumuman</div>
+    <div class="vx-ann-text" id="vx-ann-text"></div>
+  </div>
+  <div class="vx-ann-progress" id="vx-ann-progress"></div>
 </div>
 
-<!-- Admin FAB Button -->
-<button id="admin-panel-btn" title="Admin Panel" onclick="openAdminPanel()">🛡️</button>
-
-<!-- Admin Panel Modal -->
-<div id="admin-modal">
-  <div class="admin-sheet">
-    <div class="admin-sheet-handle"></div>
-    <div class="admin-sheet-header">
-      <div class="admin-sheet-title">
-        🛡️ Admin Panel
-        <span class="admin-badge">Dev Only</span>
+<!-- ══════════ ADMIN PANEL MODAL ══════════ -->
+<div id="admin-panel-modal" onclick="if(event.target===this)closeAdminPanel()">
+  <div class="admin-panel-box">
+    <div class="admin-panel-header">
+      <div class="admin-panel-title">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
+        Panel Admin
+        <span class="admin-badge">Owner</span>
       </div>
-      <button class="admin-close-btn" onclick="closeAdminPanel()">✕</button>
+      <button class="admin-close-btn" onclick="closeAdminPanel()">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
     </div>
-
-    <!-- Maintenance Mode -->
-    <div class="admin-section">
-      <div class="admin-section-label">🔧 Maintenance Mode</div>
-      <div class="admin-toggle-row">
-        <div class="admin-toggle-info">
-          <div class="admin-toggle-label">Aktifkan Maintenance</div>
-          <div class="admin-toggle-desc">Semua user lain akan melihat halaman maintenance</div>
+    <hr class="admin-divider">
+    <div class="admin-maintenance-card" id="admin-maint-card">
+      <div class="admin-maintenance-top">
+        <div class="admin-maintenance-info">
+          <div class="admin-maintenance-label">
+            🔧 Mode Maintenance
+          </div>
+          <div class="admin-maintenance-desc">
+            Saat aktif, semua pengguna yang mengirim pesan akan mendapat pesan bahwa Vexora AI sedang dalam pembaruan.
+          </div>
         </div>
-        <label class="admin-toggle">
-          <input type="checkbox" id="admin-maintenance-toggle" onchange="toggleMaintenance(this.checked)">
-          <span class="admin-toggle-slider"></span>
-        </label>
+        <div class="admin-toggle-wrap">
+          <span class="admin-toggle-label" id="admin-toggle-label-text">OFF</span>
+          <label class="admin-toggle">
+            <input type="checkbox" id="admin-maint-toggle" onchange="adminToggleMaintenance(this.checked)">
+            <span class="admin-toggle-slider"></span>
+          </label>
+        </div>
       </div>
-      <div id="admin-maintenance-status" class="admin-status"></div>
+      <div class="admin-maintenance-status" id="admin-maint-status">
+        <span class="status-dot"></span>
+        <span id="admin-maint-status-text">Vexora AI berjalan normal</span>
+      </div>
+    </div>
+    <div class="admin-announce-card">
+      <div class="admin-announce-label">📢 Announcement</div>
+      <div class="admin-announce-desc">Kirim pengumuman ke semua user — muncul sebagai popup selama 7 detik.</div>
+      <textarea class="admin-announce-textarea" id="admin-announce-input" placeholder="Tulis pengumuman di sini..."></textarea>
+      <button class="admin-announce-send-btn" id="admin-announce-btn" onclick="adminSendAnnouncement()">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+        Kirim ke Semua User
+      </button>
+    </div>
+    <div class="admin-apikey-card">
+      <div class="admin-apikey-label">🔑 API Key Global</div>
+      <div class="admin-apikey-desc">Set API key Groq untuk semua user. Saat aktif, semua user otomatis pakai key ini tanpa perlu isi sendiri.</div>
+      <input type="password" class="admin-apikey-input" id="admin-apikey-input" placeholder="sk-or-...">
+      <div class="admin-apikey-row">
+        <div class="admin-apikey-toggle-wrap">
+          <span class="admin-apikey-toggle-label" id="admin-apikey-toggle-label">Global Key: OFF</span>
+          <label class="admin-toggle">
+            <input type="checkbox" id="admin-apikey-toggle" onchange="adminToggleGlobalKey(this.checked)">
+            <span class="admin-toggle-slider"></span>
+          </label>
+        </div>
+        <button class="admin-apikey-save-btn" id="admin-apikey-save-btn" onclick="adminSaveGlobalKey()">Simpan</button>
+      </div>
+    </div>
+    <!-- ── BAN USER CARD ── -->
+    <div class="admin-user-card">
+      <div class="admin-user-label">🚫 Ban User</div>
+      <div class="admin-user-desc">Pilih user lalu tentukan durasi ban. User yang di-ban tidak bisa mengirim pesan.</div>
+      <div class="admin-user-loading" id="admin-ban-loading">Memuat daftar user...</div>
+      <select class="admin-user-select" id="admin-ban-select" style="display:none" onchange="adminBanSelectChanged()">
+        <option value="">— Pilih user —</option>
+      </select>
+      <div class="admin-user-status-label" id="admin-ban-status-label" style="display:none">Pilih user untuk melihat status</div>
+      <div class="admin-ban-duration-row" id="admin-ban-dur-row" style="display:none">
+        <button class="admin-ban-dur-btn" onclick="adminSetBanDur(10)">⏱ 10 Menit</button>
+        <button class="admin-ban-dur-btn" onclick="adminSetBanDur(30)">⏱ 30 Menit</button>
+        <button class="admin-ban-dur-btn" onclick="adminSetBanDur(60)">⏱ 60 Menit</button>
+        <button class="admin-ban-dur-btn perm" onclick="adminSetBanDur(-1)">🔒 Permanen</button>
+      </div>
+      <div class="admin-user-action-row" id="admin-ban-action-row" style="display:none">
+        <button class="admin-ban-btn" id="admin-ban-btn" onclick="adminDoBan()" disabled>🚫 Ban User</button>
+        <button class="admin-unban-btn" onclick="adminDoUnban()">✅ Unban</button>
+      </div>
     </div>
 
-    <!-- Announcement -->
-    <div class="admin-section" style="margin-top:16px;">
-      <div class="admin-section-label">📢 Announcement Banner</div>
-      <textarea class="admin-textarea" id="admin-announcement-text" placeholder="Tulis pengumuman untuk semua user... (kosongkan untuk hapus)"></textarea>
-      <button class="admin-btn admin-btn-primary" onclick="saveAnnouncement()">Simpan Announcement</button>
-      <div id="admin-announcement-status" class="admin-status"></div>
+    <!-- ── GRANT PRO CARD ── -->
+    <div class="admin-user-card">
+      <div class="admin-user-label">⭐ Grant PRO</div>
+      <div class="admin-user-desc">Berikan atau cabut akses PRO untuk user tertentu secara manual.</div>
+      <div class="admin-user-loading" id="admin-pro-loading">Memuat daftar user...</div>
+      <select class="admin-user-select" id="admin-pro-select" style="display:none" onchange="adminProSelectChanged()">
+        <option value="">— Pilih user —</option>
+      </select>
+      <div class="admin-user-status-label" id="admin-pro-status-label" style="display:none">Pilih user untuk melihat status PRO</div>
+      <div class="admin-user-action-row" id="admin-pro-action-row" style="display:none">
+        <button class="admin-pro-btn" id="admin-pro-btn" onclick="adminDoGrantPro()">⭐ Grant PRO</button>
+        <button class="admin-revoke-btn" onclick="adminDoRevokePro()">✕ Cabut PRO</button>
+      </div>
     </div>
 
-    <!-- Info -->
-    <div class="admin-section" style="margin-top:16px;">
-      <div class="admin-section-label">📊 Info</div>
-      <div style="background:rgba(255,255,255,.05);border-radius:12px;padding:14px 16px;font-size:.82rem;color:rgba(255,255,255,.6);line-height:1.8;">
-        <div>🔥 Firebase: <span style="color:#cc6b3d;">vexora-ai-a1de9</span></div>
-        <div>👤 Login: <span style="color:#cc6b3d;">Dev Owner</span></div>
-        <div id="admin-maintenance-live" style="margin-top:4px;">🔧 Maintenance: <span style="color:#27ae60;">OFF</span></div>
-      </div>
+    <div class="admin-panel-footer">
+      Panel ini hanya dapat diakses oleh DevOwnAi1008
     </div>
   </div>
 </div>
-
-<!-- ══════════ FIREBASE + ADMIN LOGIC ══════════ -->
-<script type="module">
-import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-import { getFirestore, doc, onSnapshot, updateDoc } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
-
-const firebaseConfig = {
-  apiKey: "AIzaSyBdegJHGGZkjcCBgHFF7gfY_8SuRFqioZM",
-  authDomain: "vexora-ai-a1de9.firebaseapp.com",
-  projectId: "vexora-ai-a1de9",
-  storageBucket: "vexora-ai-a1de9.firebasestorage.app",
-  messagingSenderId: "313042871514",
-  appId: "1:313042871514:web:81c4b9361346e7c55e71e3"
-};
-
-const app = initializeApp(firebaseConfig);
-const db = getFirestore(app);
-const settingsRef = doc(db, 'admin', 'settings');
-
-// Expose Firestore functions to global scope for admin panel
-window._vxFirestore = { db, settingsRef, updateDoc };
-
-// ── Realtime listener ──
-onSnapshot(settingsRef, (snap) => {
-  if (!snap.exists()) return;
-  const data = snap.data();
-
-  const isAdmin = window.currentUser && window.currentUser.isAdmin;
-
-  // ── Maintenance Mode ──
-  const overlay = document.getElementById('maintenance-overlay');
-  if (data.maintenanceMode && !isAdmin) {
-    const msg = document.getElementById('maintenance-msg');
-    if (msg) msg.textContent = data.maintenanceMessage || '⚙️ Vexora AI sedang dalam pemeliharaan sistem.';
-    if (overlay) { overlay.style.display = 'flex'; }
-  } else {
-    if (overlay) { overlay.style.display = 'none'; }
-  }
-
-  // ── Announcement Banner ──
-  const banner = document.getElementById('vx-announcement');
-  const bannerText = document.getElementById('vx-announcement-text');
-  const annoVal = (data.announcement || '').trim();
-  if (annoVal !== '') {
-    if (bannerText) bannerText.textContent = annoVal;
-    if (banner) { banner.style.display = 'block'; }
-    document.body.style.paddingTop = '40px';
-  } else {
-    if (banner) { banner.style.display = 'none'; }
-    document.body.style.paddingTop = '';
-  }
-
-  // ── Sync admin panel toggles if open ──
-  const toggle = document.getElementById('admin-maintenance-toggle');
-  if (toggle) toggle.checked = !!data.maintenanceMode;
-  const annoText = document.getElementById('admin-announcement-text');
-  if (annoText && document.activeElement !== annoText) annoText.value = data.announcement || '';
-  const liveStatus = document.getElementById('admin-maintenance-live');
-  if (liveStatus) {
-    liveStatus.innerHTML = data.maintenanceMode
-      ? '🔧 Maintenance: <span style="color:#e74c3c;">ON</span>'
-      : '🔧 Maintenance: <span style="color:#27ae60;">OFF</span>';
-  }
-});
-
-// ── Admin: Toggle Maintenance ──
-window.toggleMaintenance = async function(val) {
-  const statusEl = document.getElementById('admin-maintenance-status');
-  try {
-    const { updateDoc } = window._vxFirestore;
-    await updateDoc(window._vxFirestore.settingsRef, { maintenanceMode: val });
-    statusEl.textContent = val ? '✅ Maintenance mode diaktifkan' : '✅ Maintenance mode dinonaktifkan';
-    statusEl.className = 'admin-status ok';
-  } catch(e) {
-    statusEl.textContent = '❌ Gagal update: ' + e.message;
-    statusEl.className = 'admin-status err';
-    // Revert toggle
-    document.getElementById('admin-maintenance-toggle').checked = !val;
-  }
-  setTimeout(() => { statusEl.className = 'admin-status'; }, 3000);
-};
-
-// ── Admin: Save Announcement ──
-window.saveAnnouncement = async function() {
-  const text = document.getElementById('admin-announcement-text').value.trim();
-  const statusEl = document.getElementById('admin-announcement-status');
-  try {
-    const { updateDoc } = window._vxFirestore;
-    await updateDoc(window._vxFirestore.settingsRef, { announcement: text });
-    statusEl.textContent = text ? '✅ Announcement disimpan!' : '✅ Announcement dihapus!';
-    statusEl.className = 'admin-status ok';
-  } catch(e) {
-    statusEl.textContent = '❌ Gagal simpan: ' + e.message;
-    statusEl.className = 'admin-status err';
-  }
-  setTimeout(() => { statusEl.className = 'admin-status'; }, 3000);
-};
-</script>
+<!-- ══════════ END ADMIN PANEL MODAL ══════════ -->
+<!-- ══════════ END FIREBASE + ADMIN ══════════ -->
 
 <script>
-// ══════════ ADMIN PANEL UI ══════════
+// ══════════ FIREBASE CONFIG (untuk admin features) ══════════
+const _FB_CONFIG = {
+  apiKey: "AIzaSyDGNgCj1vGZb8sODBfpl53lbq_s3CNFyT4",
+  databaseURL: "https://vexora-ai-96207-default-rtdb.asia-southeast1.firebasedatabase.app"
+};
+
+// ══════════ ADMIN PANEL ══════════
+const _AKH = '64be7ee4d846144fed55dc7045c024f56c824843e05509b82db4bf6ad2e5a60e';
+
+async function _hashStr(s) {
+  const b = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(s));
+  return Array.from(new Uint8Array(b)).map(x => x.toString(16).padStart(2,'0')).join('');
+}
+
+let _adminOk = false;
+let _adminOkKey = null;
+
+function _isAdminUser() {
+  return _adminOk && !!currentUser && _adminOkKey === currentUser.key;
+}
+
+async function _syncAdminVerification() {
+  if (!currentUser || currentUser.isGuest) { _adminOk = false; _adminOkKey = null; _syncAdminButtonVisibility(); return; }
+  const h = await _hashStr(currentUser.key);
+  _adminOk = (h === _AKH);
+  _adminOkKey = _adminOk ? currentUser.key : null;
+  _syncAdminButtonVisibility();
+}
+
+function _syncAdminButtonVisibility() {
+  const wrap = document.getElementById('admin-panel-btn-wrap');
+  if (!wrap) return;
+  wrap.style.display = _isAdminUser() ? 'block' : 'none';
+}
+
 function openAdminPanel() {
-  document.getElementById('admin-modal').classList.add('show');
+  if (!_isAdminUser()) return;
+  const modal = document.getElementById('admin-panel-modal');
+  if (!modal) return;
+  _refreshAdminPanelUI();
+  modal.classList.add('show');
+  _adminRefreshUserPanel();
 }
+
 function closeAdminPanel() {
-  document.getElementById('admin-modal').classList.remove('show');
-}
-function closeAnnouncement() {
-  document.getElementById('vx-announcement').style.display = 'none';
-  document.body.style.paddingTop = '';
+  const modal = document.getElementById('admin-panel-modal');
+  if (modal) modal.classList.remove('show');
 }
 
-// Show admin button in sidebar after login
-function showAdminBtn() {
-  const btn = document.getElementById('admin-sidebar-btn');
-  if (btn) btn.style.display = 'flex';
-  // Sembunyikan FAB (tidak dipakai)
-  const fab = document.getElementById('admin-panel-btn');
-  if (fab) fab.style.display = 'none';
+function _refreshAdminPanelUI() {
+  const toggle = document.getElementById('admin-maint-toggle');
+  const labelText = document.getElementById('admin-toggle-label-text');
+  const statusEl = document.getElementById('admin-maint-status');
+  const statusText = document.getElementById('admin-maint-status-text');
+  const card = document.getElementById('admin-maint-card');
+  if (!toggle) return;
+  const isOn = !!_vxUpdateMode;
+  toggle.checked = isOn;
+  if (labelText) { labelText.textContent = isOn ? 'ON' : 'OFF'; labelText.className = 'admin-toggle-label' + (isOn ? ' on' : ''); }
+  if (statusEl) { statusEl.className = 'admin-maintenance-status' + (isOn ? ' status-on' : ''); }
+  if (statusText) { statusText.textContent = isOn ? 'Maintenance AKTIF — pesan user diblokir' : 'Vexora AI berjalan normal'; }
+  if (card) { card.className = 'admin-maintenance-card' + (isOn ? ' active-state' : ''); }
 }
 
-// Patch loginSuccess — tunggu sampai fungsi tersedia
-(function waitAndPatch() {
-  if (typeof window.loginSuccess === 'function') {
-    const _orig = window.loginSuccess;
+function adminToggleMaintenance(on) {
+  if (!_isAdminUser()) return;
+  _setUpdateMode(on);
+  _refreshAdminPanelUI();
+}
+
+// ── ANNOUNCEMENT ──
+const _FB_ANN_PATH = _FB_CONFIG.databaseURL + '/announcement.json';
+let _lastAnnId = null;
+
+async function adminSendAnnouncement() {
+  if (!_isAdminUser()) return;
+  const input = document.getElementById('admin-announce-input');
+  const btn = document.getElementById('admin-announce-btn');
+  const text = input ? input.value.trim() : '';
+  if (!text) return;
+  btn.disabled = true;
+  btn.textContent = 'Mengirim...';
+  try {
+    await fetch(_FB_ANN_PATH, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ text: text, id: Date.now() })
+    });
+    input.value = '';
+    btn.textContent = '✅ Terkirim!';
+    setTimeout(() => {
+      btn.disabled = false;
+      btn.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg> Kirim ke Semua User';
+    }, 2000);
+  } catch(e) {
+    btn.disabled = false;
+    btn.textContent = '❌ Gagal, coba lagi';
+    setTimeout(() => {
+      btn.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg> Kirim ke Semua User';
+    }, 2000);
+  }
+}
+
+function _showAnnouncementPopup(text) {
+  const popup = document.getElementById('vx-announcement-popup');
+  const textEl = document.getElementById('vx-ann-text');
+  const progress = document.getElementById('vx-ann-progress');
+  if (!popup || !textEl) return;
+  textEl.textContent = text;
+  progress.style.animation = 'none';
+  popup.classList.add('show');
+  setTimeout(() => { progress.style.animation = 'vx-ann-shrink 7s linear forwards'; }, 50);
+  setTimeout(() => { popup.classList.remove('show'); }, 7000);
+}
+
+async function _pollAnnouncement() {
+  try {
+    const res = await fetch(_FB_ANN_PATH);
+    const data = await res.json();
+    if (data && data.id && data.text && data.id !== _lastAnnId) {
+      if (Date.now() - data.id < 30000) {
+        _lastAnnId = data.id;
+        _showAnnouncementPopup(data.text);
+      } else {
+        _lastAnnId = data.id;
+      }
+    }
+  } catch(e) {}
+}
+setInterval(_pollAnnouncement, 5000);
+_pollAnnouncement();
+
+// ── GLOBAL API KEY ──
+const _FB_APIKEY_PATH = _FB_CONFIG.databaseURL + '/globalApiKey.json';
+
+async function _fetchGlobalApiKey() {
+  try {
+    const res = await fetch(_FB_APIKEY_PATH);
+    const data = await res.json();
+    if (data && data.active && data.key) {
+      apiKey = data.key;
+      const keyInput = document.getElementById('api-key-input');
+      if (keyInput) keyInput.value = apiKey;
+    }
+    if (_isAdminUser()) _refreshAdminApiKeyUI(data);
+  } catch(e) {}
+}
+_fetchGlobalApiKey();
+setInterval(_fetchGlobalApiKey, 15000);
+
+function _refreshAdminApiKeyUI(data) {
+  const toggle = document.getElementById('admin-apikey-toggle');
+  const label = document.getElementById('admin-apikey-toggle-label');
+  const input = document.getElementById('admin-apikey-input');
+  if (!toggle || !data) return;
+  const isOn = !!(data && data.active);
+  toggle.checked = isOn;
+  if (label) { label.textContent = 'Global Key: ' + (isOn ? 'ON' : 'OFF'); label.className = 'admin-apikey-toggle-label' + (isOn ? ' on' : ''); }
+  if (input && data.key) input.value = data.key;
+}
+
+async function adminSaveGlobalKey() {
+  if (!_isAdminUser()) return;
+  const input = document.getElementById('admin-apikey-input');
+  const btn = document.getElementById('admin-apikey-save-btn');
+  const toggle = document.getElementById('admin-apikey-toggle');
+  const key = input ? input.value.trim() : '';
+  if (!key) { alert('API key tidak boleh kosong!'); return; }
+  btn.disabled = true;
+  btn.textContent = 'Menyimpan...';
+  try {
+    await fetch(_FB_APIKEY_PATH, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ key: key, active: toggle ? toggle.checked : false, updatedAt: Date.now() })
+    });
+    btn.textContent = '✅ Tersimpan!';
+    setTimeout(() => { btn.disabled = false; btn.textContent = 'Simpan'; }, 2000);
+  } catch(e) {
+    btn.disabled = false;
+    btn.textContent = '❌ Gagal';
+    setTimeout(() => { btn.textContent = 'Simpan'; }, 2000);
+  }
+}
+
+async function adminToggleGlobalKey(on) {
+  if (!_isAdminUser()) return;
+  const input = document.getElementById('admin-apikey-input');
+  const label = document.getElementById('admin-apikey-toggle-label');
+  const key = input ? input.value.trim() : '';
+  if (label) { label.textContent = 'Global Key: ' + (on ? 'ON' : 'OFF'); label.className = 'admin-apikey-toggle-label' + (on ? ' on' : ''); }
+  try {
+    await fetch(_FB_APIKEY_PATH, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ key: key, active: on, updatedAt: Date.now() })
+    });
+    if (on && key) {
+      apiKey = key;
+      const keyInput = document.getElementById('api-key-input');
+      if (keyInput) keyInput.value = apiKey;
+    }
+  } catch(e) {}
+}
+// ══════════ END ADMIN PANEL ══════════
+
+// ══════════ USER REGISTRY + BAN + GRANT PRO ══════════
+const _FB_USERS_PATH = _FB_CONFIG.databaseURL + '/users.json';
+const _FB_BAN_PATH   = _FB_CONFIG.databaseURL + '/bans.json';
+const _FB_PRO_PATH   = _FB_CONFIG.databaseURL + '/grantedPro.json';
+
+async function _registerUserToFirebase(user) {
+  if (!user || user.isGuest) return;
+  try {
+    const path = _FB_CONFIG.databaseURL + '/users/' + user.key + '.json';
+    await fetch(path, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ username: user.username, key: user.key, lastLogin: Date.now() })
+    });
+  } catch(e) {}
+}
+
+async function _checkBanOnLogin(user) {
+  if (!user || user.isGuest) return;
+  try {
+    const path = _FB_CONFIG.databaseURL + '/bans/' + user.key + '.json';
+    const res = await fetch(path);
+    const data = await res.json();
+    if (!data || !data.active) return;
+    const isPerm = data.permanent === true;
+    const expired = !isPerm && data.until && Date.now() > data.until;
+    if (expired) { await fetch(path, { method: 'DELETE' }); return; }
+    setCurrentUser(null);
+    currentUser = null;
+    const remaining = isPerm ? null : Math.ceil((data.until - Date.now()) / 60000);
+    const msg = isPerm ? 'Akunmu telah diblokir secara permanen oleh admin.' : ('Akunmu diblokir selama ' + remaining + ' menit lagi.');
+    document.body.classList.add('login-active');
+    const screen = document.getElementById('login-screen');
+    if (screen) screen.style.display = '';
+    const errEl = document.getElementById('login-error');
+    if (errEl) { errEl.textContent = '🚫 ' + msg; errEl.className = 'login-error show'; }
+  } catch(e) {}
+}
+
+async function _checkFirebaseProGrant(user) {
+  if (!user || user.isGuest) return;
+  try {
+    const path = _FB_CONFIG.databaseURL + '/grantedPro/' + user.key + '.json';
+    const res = await fetch(path);
+    const data = await res.json();
+    if (data && data.active) {
+      if (typeof proKey === 'function') {
+        localStorage.setItem(proKey('unlocked'), '1');
+        if (typeof updateProUI === 'function') updateProUI();
+        if (typeof applyProState === 'function') applyProState();
+      }
+    }
+  } catch(e) {}
+}
+
+let _adminUserList = [];
+async function _adminLoadUsers() {
+  try {
+    const res = await fetch(_FB_USERS_PATH);
+    const data = await res.json();
+    const allUsers = data ? Object.values(data).filter(u => u && u.key) : [];
+    const checks = await Promise.all(allUsers.map(async u => {
+      const h = await _hashStr(u.key);
+      return h !== _AKH ? u : null;
+    }));
+    _adminUserList = checks.filter(Boolean);
+  } catch(e) { _adminUserList = []; }
+}
+
+let _adminBanData = {};
+let _adminProData = {};
+async function _adminLoadBanPro() {
+  try {
+    const [banRes, proRes] = await Promise.all([fetch(_FB_BAN_PATH), fetch(_FB_PRO_PATH)]);
+    _adminBanData = (await banRes.json()) || {};
+    _adminProData = (await proRes.json()) || {};
+  } catch(e) {}
+}
+
+function _adminPopulateSelect(selectId, loadingId) {
+  const sel = document.getElementById(selectId);
+  const loading = document.getElementById(loadingId);
+  if (!sel) return;
+  if (loading) loading.style.display = 'none';
+  sel.style.display = '';
+  sel.innerHTML = '<option value="">— Pilih user —</option>';
+  _adminUserList.forEach(u => {
+    const opt = document.createElement('option');
+    opt.value = u.key;
+    opt.textContent = u.username + ' (' + u.key + ')';
+    sel.appendChild(opt);
+  });
+}
+
+async function _adminRefreshUserPanel() {
+  await _adminLoadUsers();
+  await _adminLoadBanPro();
+  _adminPopulateSelect('admin-ban-select', 'admin-ban-loading');
+  _adminPopulateSelect('admin-pro-select', 'admin-pro-loading');
+  ['admin-ban-status-label','admin-pro-status-label'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) { el.style.display = 'none'; el.innerHTML = ''; }
+  });
+  ['admin-ban-dur-row','admin-ban-action-row','admin-pro-action-row'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.style.display = 'none';
+  });
+}
+
+let _adminBanSelectedDur = null;
+function adminBanSelectChanged() {
+  const key = document.getElementById('admin-ban-select').value;
+  const statusEl = document.getElementById('admin-ban-status-label');
+  const durRow = document.getElementById('admin-ban-dur-row');
+  const actionRow = document.getElementById('admin-ban-action-row');
+  const banBtn = document.getElementById('admin-ban-btn');
+  _adminBanSelectedDur = null;
+  if (banBtn) banBtn.disabled = true;
+  if (!key) {
+    if (statusEl) statusEl.style.display = 'none';
+    if (durRow) durRow.style.display = 'none';
+    if (actionRow) actionRow.style.display = 'none';
+    return;
+  }
+  const user = _adminUserList.find(u => u.key === key);
+  const banInfo = _adminBanData[key];
+  const isBanned = banInfo && banInfo.active && (banInfo.permanent || (banInfo.until && Date.now() < banInfo.until));
+  if (statusEl) {
+    statusEl.style.display = '';
+    const name = user ? user.username : key;
+    if (isBanned) {
+      const durTxt = banInfo.permanent ? 'Permanen' : Math.ceil((banInfo.until - Date.now()) / 60000) + ' menit lagi';
+      statusEl.innerHTML = '<span class="usl-name">' + name + '</span> — <span class="usl-ban">Dibanned (' + durTxt + ')</span>';
+    } else {
+      statusEl.innerHTML = '<span class="usl-name">' + name + '</span> — Tidak dibanned';
+    }
+  }
+  if (durRow) durRow.style.display = '';
+  if (actionRow) actionRow.style.display = '';
+}
+
+function adminSetBanDur(mins) {
+  _adminBanSelectedDur = mins;
+  const banBtn = document.getElementById('admin-ban-btn');
+  if (banBtn) {
+    banBtn.disabled = false;
+    banBtn.textContent = mins === -1 ? '🚫 Ban Permanen' : '🚫 Ban ' + mins + ' Menit';
+  }
+  document.querySelectorAll('.admin-ban-dur-btn').forEach(btn => btn.style.outline = '');
+  event.target.style.outline = '2px solid #ef4444';
+}
+
+async function adminDoBan() {
+  if (!_isAdminUser()) return;
+  const key = document.getElementById('admin-ban-select').value;
+  if (!key || _adminBanSelectedDur === null) return;
+  const banBtn = document.getElementById('admin-ban-btn');
+  banBtn.disabled = true;
+  banBtn.textContent = 'Memproses...';
+  const isPerm = _adminBanSelectedDur === -1;
+  const until = isPerm ? null : Date.now() + _adminBanSelectedDur * 60 * 1000;
+  try {
+    const path = _FB_CONFIG.databaseURL + '/bans/' + key + '.json';
+    await fetch(path, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ active: true, permanent: isPerm, until: until, bannedAt: Date.now() })
+    });
+    _adminBanData[key] = { active: true, permanent: isPerm, until: until };
+    banBtn.textContent = '✅ Berhasil!';
+    setTimeout(() => { adminBanSelectChanged(); }, 1500);
+  } catch(e) {
+    banBtn.disabled = false;
+    banBtn.textContent = '❌ Gagal';
+    setTimeout(() => { banBtn.textContent = '🚫 Ban User'; }, 2000);
+  }
+}
+
+async function adminDoUnban() {
+  if (!_isAdminUser()) return;
+  const key = document.getElementById('admin-ban-select').value;
+  if (!key) return;
+  try {
+    const path = _FB_CONFIG.databaseURL + '/bans/' + key + '.json';
+    await fetch(path, { method: 'DELETE' });
+    delete _adminBanData[key];
+    adminBanSelectChanged();
+  } catch(e) {}
+}
+
+function adminProSelectChanged() {
+  const key = document.getElementById('admin-pro-select').value;
+  const statusEl = document.getElementById('admin-pro-status-label');
+  const actionRow = document.getElementById('admin-pro-action-row');
+  if (!key) {
+    if (statusEl) statusEl.style.display = 'none';
+    if (actionRow) actionRow.style.display = 'none';
+    return;
+  }
+  const user = _adminUserList.find(u => u.key === key);
+  const proInfo = _adminProData[key];
+  const hasPro = proInfo && proInfo.active;
+  if (statusEl) {
+    statusEl.style.display = '';
+    const name = user ? user.username : key;
+    statusEl.innerHTML = hasPro
+      ? '<span class="usl-name">' + name + '</span> — <span class="usl-pro">⭐ PRO Aktif</span>'
+      : '<span class="usl-name">' + name + '</span> — Tidak memiliki PRO';
+  }
+  if (actionRow) actionRow.style.display = '';
+}
+
+async function adminDoGrantPro() {
+  if (!_isAdminUser()) return;
+  const key = document.getElementById('admin-pro-select').value;
+  if (!key) return;
+  const btn = document.getElementById('admin-pro-btn');
+  btn.disabled = true;
+  btn.textContent = 'Memproses...';
+  try {
+    const path = _FB_CONFIG.databaseURL + '/grantedPro/' + key + '.json';
+    await fetch(path, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ active: true, grantedAt: Date.now() })
+    });
+    _adminProData[key] = { active: true };
+    btn.textContent = '✅ Berhasil!';
+    setTimeout(() => { adminProSelectChanged(); }, 1500);
+  } catch(e) {
+    btn.disabled = false;
+    btn.textContent = '⭐ Grant PRO';
+  }
+}
+
+async function adminDoRevokePro() {
+  if (!_isAdminUser()) return;
+  const key = document.getElementById('admin-pro-select').value;
+  if (!key) return;
+  try {
+    const path = _FB_CONFIG.databaseURL + '/grantedPro/' + key + '.json';
+    await fetch(path, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ active: false, revokedAt: Date.now() })
+    });
+    _adminProData[key] = { active: false };
+    if (typeof proKey === 'function' && currentUser && currentUser.key === key) {
+      localStorage.removeItem(proKey('unlocked'));
+      if (typeof updateProUI === 'function') updateProUI();
+    }
+    adminProSelectChanged();
+  } catch(e) {}
+}
+// ══════════ END USER REGISTRY + BAN + GRANT PRO ══════════
+
+// ── Hook loginSuccess untuk trigger admin verification & register ke Firebase ──
+(function _patchLoginForAdmin() {
+  const _origLS = window.loginSuccess;
+  if (typeof _origLS === 'function') {
     window.loginSuccess = function(user) {
-      _orig(user);
-      if (user && user.isAdmin) {
-        setTimeout(showAdminBtn, 300);
+      _origLS(user);
+      if (user && !user.isGuest) {
+        _syncAdminVerification();
+        _registerUserToFirebase(user);
+        _checkBanOnLogin(user);
+        _checkFirebaseProGrant(user);
       }
     };
   } else {
-    setTimeout(waitAndPatch, 50);
+    setTimeout(_patchLoginForAdmin, 100);
   }
 })();
 </script>
-<!-- ══════════ END FIREBASE + ADMIN ══════════ -->
 
 </body>
 </html>
