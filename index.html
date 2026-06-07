@@ -7625,14 +7625,14 @@ body.login-active #overlay {
       <!-- Provider Selector -->
       <div style="display:grid;grid-template-columns:1fr;gap:8px;margin-bottom:16px" id="provider-grid">
         <button class="provider-card active" id="pcard-openrouter" onclick="selectProvider('openrouter')">
-          <div class="pcard-icon">⚡</div>
+          <div class="pcard-icon">🔀</div>
           <div class="pcard-name">OpenRouter</div>
-          <div class="pcard-sub">Multi-model · Gratis</div>
+          <div class="pcard-sub">100+ model</div>
         </button>
       </div>
 
       <!-- API Key info -->
-      <div id="provider-info" style="font-size:.72rem;color:var(--text2);margin-bottom:8px;padding:8px 10px;background:var(--surface2);border-radius:8px;border:1px solid var(--border2)"><a href="https://openrouter.ai/keys" target="_blank" style="color:var(--accent);text-decoration:none;">Dapatkan API key OpenRouter gratis di sini ↗</a></div>
+      <div id="provider-info" style="font-size:.72rem;color:var(--text2);margin-bottom:8px;padding:8px 10px;background:var(--surface2);border-radius:8px;border:1px solid var(--border2)"><a href="https://openrouter.ai/keys" target="_blank" style="color:var(--accent);text-decoration:none;">Buat API key di sini ↗</a></div>
 
       <!-- API Key input -->
       <input type="password" id="api-key-input" placeholder="Masukkan API key..."/>
@@ -8043,45 +8043,27 @@ function apiKeyStorageKey() {
   const provider = localStorage.getItem('vx_provider') || 'openrouter';
   return 'vx_apikey_' + provider + '_' + u;
 }
-
-// ── Migrasi provider lama → openrouter ──
-(function migrateToGroq() {
-  const savedProvider = localStorage.getItem('vx_provider');
-  if (savedProvider && savedProvider !== 'openrouter') {
-    // User punya key lama (openrouter/gemini), paksa reset ke groq
-    localStorage.setItem('vx_provider', 'openrouter');
-    // Hapus model lama yang tidak kompatibel dengan openrouter
-    const savedModel = localStorage.getItem('vx_model') || '';
-    const openrouterModels = ['meta-llama/llama-3.3-70b-instruct:free','meta-llama/llama-3.1-8b-instruct:free','google/gemma-2-9b-it:free','mistralai/mistral-7b-instruct:free','deepseek/deepseek-chat-v3-0324:free','openai/gpt-4o','openai/gpt-4o-mini','anthropic/claude-3.5-sonnet','deepseek/deepseek-r1','google/gemini-2.0-flash-001'];
-    if (!openrouterModels.includes(savedModel)) {
-      localStorage.setItem('vx_model', 'meta-llama/llama-3.3-70b-instruct:free');
-    }
-  }
-})();
-
 let apiKey = '';
-let model = localStorage.getItem('vx_model') || 'meta-llama/llama-3.3-70b-instruct:free';
+let model = localStorage.getItem('vx_model') || 'openai/gpt-4o-mini';
 
 // ── Model tiers ──
-const MODEL_FREE_NORMAL = 'meta-llama/llama-3.3-70b-instruct:free';
-const MODEL_FREE_SMART  = 'meta-llama/llama-3.3-70b-instruct:free';
-const MODEL_PRO_NORMAL  = 'openai/gpt-4o-mini';
-const MODEL_PRO_SMART   = 'openai/gpt-4o-mini';
+const MODEL_FREE_NORMAL = 'openai/gpt-4o-mini';
+const MODEL_FREE_SMART  = 'openai/gpt-4o';
+const MODEL_PRO_NORMAL  = 'anthropic/claude-sonnet-4-6';
+const MODEL_PRO_SMART   = 'anthropic/claude-opus-4-6';
 
 function getActiveModel(mode) {
-  const savedModel = localStorage.getItem('vx_model');
-  const openrouterModels = (typeof PROVIDERS !== 'undefined' && PROVIDERS['openrouter']) ? PROVIDERS['openrouter'].models : [];
-  const found = openrouterModels.find(m => m.value === savedModel);
-  if (found) return found.value;
   const pro = typeof isPro === 'function' && isPro();
-  if (mode === 'smart-pro' || mode === 'normal-pro') return pro ? MODEL_PRO_NORMAL : MODEL_FREE_NORMAL;
+  if (mode === 'smart-pro') return pro ? MODEL_PRO_SMART  : MODEL_FREE_SMART;
+  if (mode === 'normal-pro') return pro ? MODEL_PRO_NORMAL : MODEL_FREE_NORMAL;
+  if (mode === 'smart') return MODEL_FREE_SMART;
   return MODEL_FREE_NORMAL;
 }
 
 // Helper: pilih model untuk fungsi utilitas (memory, rename, deep think, dll)
 // PRO user pakai Claude Sonnet, free user pakai gpt-4o-mini
 function getUtilityModel() {
-  return (typeof isPro === 'function' && isPro()) ? 'openai/gpt-4o-mini' : 'meta-llama/llama-3.3-70b-instruct:free';
+  return (typeof isPro === 'function' && isPro()) ? 'anthropic/claude-sonnet-4-6' : 'openai/gpt-4o-mini';
 }
 let sidebarOpen = window.innerWidth > 640;
 let currentMode = localStorage.getItem('vx_mode') || 'normal';
@@ -10834,29 +10816,34 @@ const PROVIDERS = {
     name: 'OpenRouter',
     endpoint: 'https://openrouter.ai/api/v1/chat/completions',
     keyPrefix: 'sk-or-',
-    keyPlaceholder: 'sk-or-...',
-    info: '<a href="https://openrouter.ai/keys" target="_blank" style="color:var(--accent);text-decoration:none;">Dapatkan API key OpenRouter gratis di sini ↗</a>',
+    keyPlaceholder: 'sk-or-v1-...',
+    info: '',
     models: [
-      // ── Gratis (Free Tier) ──
-      { value: 'meta-llama/llama-3.3-70b-instruct:free',      label: 'Llama 3.3 70B',          tag: 'Gratis · Serba bisa' },
-      { value: 'meta-llama/llama-3.1-8b-instruct:free',       label: 'Llama 3.1 8B Instant',   tag: 'Gratis · Ultra Cepat' },
-      { value: 'google/gemma-2-9b-it:free',                   label: 'Gemma 2 9B',             tag: 'Gratis · Google' },
-      { value: 'mistralai/mistral-7b-instruct:free',          label: 'Mistral 7B',             tag: 'Gratis · Ringan' },
-      { value: 'deepseek/deepseek-chat-v3-0324:free',         label: 'DeepSeek V3',            tag: 'Gratis · Kuat' },
-      // ── PRO ──
-      { value: 'openai/gpt-4o',                               label: 'GPT-4o',                 tag: 'PRO · OpenAI', pro: true },
-      { value: 'openai/gpt-4o-mini',                          label: 'GPT-4o Mini',            tag: 'PRO · Cepat', pro: true },
-      { value: 'anthropic/claude-3.5-sonnet',                 label: 'Claude 3.5 Sonnet',      tag: 'PRO · Anthropic', pro: true },
-      { value: 'deepseek/deepseek-r1',                        label: 'DeepSeek R1',            tag: 'PRO · Reasoning', pro: true },
-      { value: 'google/gemini-2.0-flash-001',                 label: 'Gemini 2.0 Flash',       tag: 'PRO · Google', pro: true },
+      // ── GRATIS ──
+      { value: 'openai/gpt-4o-mini',                           label: 'GPT-4o Mini',           tag: 'Gratis · Serba bisa' },
+      { value: 'google/gemini-2.0-flash-exp:free',             label: 'Gemini 2.0 Flash',      tag: 'Gratis · Cepat' },
+      { value: 'google/gemini-2.5-pro-exp-03-25:free',         label: 'Gemini 2.5 Pro Exp',    tag: 'Gratis · Canggih' },
+      { value: 'meta-llama/llama-3.3-70b-instruct:free',       label: 'Llama 3.3 70B',         tag: 'Gratis · Teks panjang' },
+      { value: 'deepseek/deepseek-r1:free',                    label: 'DeepSeek R1',           tag: 'Gratis · Reasoning' },
+      { value: 'mistralai/mistral-small-3.1-24b-instruct:free',label: 'Mistral Small 3.1',     tag: 'Gratis · Ringan' },
+      // ── PRO — Umum ──
+      { value: 'anthropic/claude-sonnet-4-6',                  label: 'Vexora Pro 4.6',        tag: 'PRO · Terbaik', pro: true },
+      { value: 'openai/gpt-4o',                                label: 'GPT-4o',                tag: 'PRO · Multimodal', pro: true },
+      { value: 'google/gemini-2.5-pro',                        label: 'Gemini 2.5 Pro',        tag: 'PRO · Riset', pro: true },
+      { value: 'anthropic/claude-opus-4-6',                    label: 'Vexora Apex 4.6',       tag: 'PRO · Analisis berat', pro: true },
+      // ── PRO — Coding ──
+      { value: 'deepseek/deepseek-v4-pro',                     label: 'DeepSeek V4 Pro',       tag: 'PRO · Coding', pro: true },
+      { value: 'openai/o4-mini',                               label: 'OpenAI o4-mini',        tag: 'PRO · Coding+Math', pro: true },
+      // ── PRO — Riset & Analisis ──
+      { value: 'deepseek/deepseek-r1',                         label: 'DeepSeek R1 Full',      tag: 'PRO · Reasoning++', pro: true },
     ]
   }
 }
-// Alias agar semua kode yang merujuk PROVIDERS['openrouter'] tetap bekerja
-if (!PROVIDERS['openrouter']) PROVIDERS['openrouter'] = PROVIDERS['openrouter'];
 // ── Default model berdasarkan status PRO ──
-const MODEL_DEFAULT_FREE = 'meta-llama/llama-3.3-70b-instruct:free';
-const MODEL_DEFAULT_PRO  = 'openai/gpt-4o-mini';
+// Non-PRO / akun baru  → GPT-4o Mini (gratis)
+// PRO                  → DeepSeek Coder V2 (PRO · Coding)
+const MODEL_DEFAULT_FREE = 'openai/gpt-4o-mini';
+const MODEL_DEFAULT_PRO  = 'anthropic/claude-opus-4-6';
 
 function applyDefaultModelByProStatus(forceOverride) {
   const pro = typeof isPro === 'function' && isPro();
@@ -10868,7 +10855,7 @@ function applyDefaultModelByProStatus(forceOverride) {
     const saved = localStorage.getItem('vx_model');
     // Kalau ada pilihan tersimpan dan masih valid (tidak locked untuk status saat ini), pakai itu
     if (saved) {
-      const provModels = (PROVIDERS['openrouter'] || {}).models || [];
+      const provModels = PROVIDERS['openrouter']?.models || [];
       const savedMeta = provModels.find(m => m.value === saved);
       const isProModel = savedMeta && (savedMeta.pro === true || savedMeta.label.includes('PRO'));
       // Kalau akun non-PRO dan model tersimpan adalah PRO model → override ke default free
@@ -10905,8 +10892,8 @@ function applyDefaultModelByProStatus(forceOverride) {
       ? 'color:#e8976a;border-color:rgba(204,107,61,.3);background:rgba(204,107,61,.08)'
       : 'color:var(--accent);border-color:rgba(204,107,61,.3);background:rgba(204,107,61,.08)';
     t.textContent = pro
-      ? '🚀 Model otomatis: GPT-4o Mini (PRO)'
-      : '🤖 Model otomatis: Llama 3.3 70B (OpenRouter)';
+      ? '🚀 Model otomatis: DeepSeek Coder V2 (PRO Coding)'
+      : '🤖 Model otomatis: GPT-4o Mini';
     chatEl2.appendChild(t);
     (_userScrolledUp=false,chatEl2.scrollTop=chatEl2.scrollHeight);
     setTimeout(() => { if (t.parentNode) t.remove(); }, 3000);
@@ -10947,12 +10934,6 @@ function selectProvider(p) {
         if (firstFree) sel.value = firstFree.value;
       }
     }
-  }
-  // update provider info link
-  const provInfoEl = document.getElementById('provider-info');
-  if (provInfoEl) {
-    const infoHtml = PROVIDERS[p]?.info || '';
-    provInfoEl.innerHTML = infoHtml || '<a href="https://openrouter.ai/keys" target="_blank" style="color:var(--accent);text-decoration:none;">Dapatkan API key OpenRouter gratis di sini ↗</a>';
   }
   // load saved key for this provider+user
   if (keyInp) {
@@ -12303,7 +12284,7 @@ async function generateImage(prompt, originalText) {
         'X-Title': 'Vexora AI'
       },
       body: JSON.stringify({
-        model: 'meta-llama/llama-3.3-70b-instruct:free',
+        model: 'openai/gpt-4o-mini',
         max_tokens: 120,
         messages: [{
           role: 'user',
@@ -13096,17 +13077,18 @@ async function fireSmartAPI(messages, hasImages = false, hasDoc = false) {
   // ── Determine active provider & endpoint ──
   const provider = (typeof currentProvider !== 'undefined' ? currentProvider : null) || localStorage.getItem('vx_provider') || 'openrouter';
   const providerCfg = (typeof PROVIDERS !== 'undefined' && PROVIDERS[provider]) ? PROVIDERS[provider] : null;
-  const isGroq = provider === 'openrouter'; // using openrouter
-
   const apiEndpoint = providerCfg?.endpoint || 'https://openrouter.ai/api/v1/chat/completions';
+  const isOpenRouter = provider === 'openrouter';
 
   // Build headers
   const apiHeaders = {
     'Content-Type': 'application/json',
     'Authorization': 'Bearer ' + apiKey,
-    'HTTP-Referer': 'https://pinzz133.github.io/vexora',
-    'X-Title': 'Vexora AI',
   };
+  if (isOpenRouter) {
+    apiHeaders['HTTP-Referer'] = 'https://vexora.ai';
+    apiHeaders['X-Title'] = 'Vexora AI';
+  }
 
   try {
     // ── Web Search: auto-detect, gunakan OpenRouter online model ──
@@ -13144,18 +13126,17 @@ async function fireSmartAPI(messages, hasImages = false, hasDoc = false) {
         // Fetch dari Perplexity via OpenRouter (sudah include web search real-time)
         let perplexityDone = false;
         try {
-          // Web search via OpenRouter (model yang dipilih user)
           const wsRes = await fetch('https://openrouter.ai/api/v1/chat/completions', {
             method: 'POST',
             signal: abortController.signal,
             headers: {
               'Content-Type': 'application/json',
               'Authorization': 'Bearer ' + apiKey,
-              'HTTP-Referer': 'https://pinzz133.github.io/vexora',
-              'X-Title': 'Vexora AI',
+              'HTTP-Referer': 'https://vexora.ai',
+              'X-Title': 'Vexora AI'
             },
             body: JSON.stringify({
-              model: 'meta-llama/llama-3.3-70b-instruct:free',
+              model: 'perplexity/sonar',
               stream: false,
               max_tokens: 2000,
               messages: [
@@ -13281,7 +13262,7 @@ async function fireSmartAPI(messages, hasImages = false, hasDoc = false) {
       }
     }
 
-    const selectedModel = getCurrentModeModel(currentMode);
+    const selectedModel = hasImages ? (typeof isPro === 'function' && isPro() ? 'anthropic/claude-sonnet-4-6' : 'openai/gpt-4o') : getCurrentModeModel(currentMode);
 
     // ── Priority handled by rate limit system ──
     const proUser = typeof isPro === 'function' && isPro();
@@ -13298,24 +13279,23 @@ async function fireSmartAPI(messages, hasImages = false, hasDoc = false) {
       ? (effortLevel === 'maks' ? 32000 : Math.min(baseTokens * 2, 12000))
       : baseTokens;
 
-    const useStream = true;
-
-    const requestBody = {
-      model: selectedModel,
-      stream: useStream,
-      temperature: temperature,
-      messages: [
-        { role: 'system', content: buildSystemPrompt() + (MODE_SYSTEM_EXTRA[currentMode] || MODE_SYSTEM_EXTRA['normal']) + getRealTimeContext() + webSearchContext },
-        ...messages
-      ],
-      max_tokens: maxTokens
-    };
+    // Gemini via OpenAI-compat endpoint tidak support streaming dengan stabil
+    const useStream = provider !== 'gemini';
 
     const res = await fetch(apiEndpoint, {
       method: 'POST',
       signal: abortController.signal,
       headers: apiHeaders,
-      body: JSON.stringify(requestBody)
+      body: JSON.stringify({
+        model: selectedModel,
+        stream: useStream,
+        temperature: temperature,
+        messages: [
+          { role: 'system', content: buildSystemPrompt() + (MODE_SYSTEM_EXTRA[currentMode] || MODE_SYSTEM_EXTRA['normal']) + getRealTimeContext() + webSearchContext },
+          ...messages
+        ],
+        max_tokens: maxTokens
+      })
     });
 
     if (!res.ok) {
@@ -13324,16 +13304,15 @@ async function fireSmartAPI(messages, hasImages = false, hasDoc = false) {
       try { data = await res.json(); } catch(_) {}
       const errMsg = data?.error?.message || '';
       // 401 = API key salah/tidak valid
-      if (res.status === 401 || res.status === 403) {
+      if (res.status === 401) {
         removeTyping();
-        const errProvider = (typeof currentProvider !== 'undefined' ? currentProvider : null) || localStorage.getItem('vx_provider') || 'openrouter';
-        appendMsg('ai', '🔑 API key OpenRouter tidak valid. Pastikan kamu sudah memasukkan API key (sk-or-...) dari openrouter.ai/keys dan provider dipilih OpenRouter.');
+        appendMsg('ai', '🔑 API key tidak valid atau belum tersimpan dengan benar. Buka Pengaturan → API Key dan simpan ulang API key kamu.');
         return;
       }
       // 402/429 = kredit habis atau rate limit
       if (res.status === 402 || res.status === 429 || /insufficient|credit|quota|billing|payment|out of credits|no credits|balance/i.test(errMsg)) {
         removeTyping();
-        appendMsg('ai', '💳 Kuota atau rate limit API key OpenRouter kamu mungkin sudah habis. Coba lagi sebentar atau buat API key baru di openrouter.ai.');
+        appendMsg('ai', '💳 Kredit API key kamu mungkin sudah habis. Silahkan isi ulang kredit di OpenRouter atau buat API key baru.');
         return;
       }
       if (data.error) throw new Error(errMsg || 'API Error ' + res.status);
@@ -13468,7 +13447,7 @@ async function fireSmartAPI(messages, hasImages = false, hasDoc = false) {
           if (payload === '[DONE]') { streamDone = true; continue; }
           try {
             const parsed = JSON.parse(payload);
-            const delta = parsed?.choices?.[0]?.delta?.content || null;
+            const delta  = parsed?.choices?.[0]?.delta?.content;
             if (delta) rawAccum += delta;
             if (parsed?.choices?.[0]?.finish_reason) streamDone = true;
           } catch (_) {}
@@ -13491,10 +13470,10 @@ async function fireSmartAPI(messages, hasImages = false, hasDoc = false) {
     removeTyping();
     // Deteksi token/kredit habis dari pesan error
     const eMsg = err.message || '';
-    if (/401|403|unauthorized|invalid.*key|api key/i.test(eMsg)) {
-      appendMsg('ai', '🔑 API key OpenRouter tidak valid. Buka Pengaturan → API Key dan masukkan key (sk-or-...) dari openrouter.ai/keys');
+    if (/401|unauthorized|invalid.*key|api key/i.test(eMsg)) {
+      appendMsg('ai', '🔑 API key tidak valid. Buka Pengaturan → API Key dan simpan ulang API key kamu.');
     } else if (/insufficient|credit|quota|billing|payment|out of credits|no credits|balance|402|429/i.test(eMsg)) {
-      appendMsg('ai', '💳 Rate limit atau kuota OpenRouter habis. Coba lagi sebentar atau buat API key baru di openrouter.ai.');
+      appendMsg('ai', '💳 Kredit API key kamu habis. Silahkan isi ulang kredit di OpenRouter atau buat API key baru.');
     } else if (/fetch|network|failed to fetch/i.test(eMsg)) {
       appendMsg('ai', '🌐 Koneksi gagal. Periksa koneksi internet kamu dan coba lagi.');
     } else {
@@ -15316,7 +15295,7 @@ function loginSuccess(user) {
   // Load API key for this user (provider-aware key, fallback to old format)
   const _savedProvider2 = localStorage.getItem('vx_provider') || 'openrouter';
   apiKey = localStorage.getItem('vx_apikey_' + _savedProvider2 + '_' + user.key)
-        || (_savedProvider2 === 'openrouter' ? localStorage.getItem('vx_apikey_' + user.key) : '')
+        || localStorage.getItem('vx_apikey_' + user.key)
         || '';
   // Load memory for this user
   memories = JSON.parse(localStorage.getItem('vx_memory_' + user.key) || '[]');
@@ -15817,7 +15796,7 @@ Invert: const d=ctx.getImageData(0,0,canvas.width,canvas.height);for(let i=0;i<d
         'X-Title': 'Vexora AI'
       },
       body: JSON.stringify({
-        model: 'meta-llama/llama-3.3-70b-instruct:free',
+        model: 'openai/gpt-4o',
         stream: false,
         max_tokens: 800,
         messages: [
@@ -15957,7 +15936,7 @@ async function getEditDescription(imgObj, instruction, code) {
         'X-Title': 'Vexora AI'
       },
       body: JSON.stringify({
-        model: 'meta-llama/llama-3.3-70b-instruct:free',
+        model: 'openai/gpt-4o-mini',
         max_tokens: 80,
         messages: [
           { role: 'system', content: 'Buat deskripsi singkat (max 1 kalimat, bahasa Indonesia) tentang efek edit gambar yang telah diterapkan. Langsung to the point, tidak perlu salam.' },
@@ -16879,7 +16858,7 @@ async function _fetchGlobalApiKey() {
     const res = await fetch(_FB_APIKEY_PATH);
     const data = await res.json();
     if (data && data.active && data.key) {
-      // Override key dari admin (global key)
+      // Apply global key — override user's local key
       apiKey = data.key;
       const keyInput = document.getElementById('api-key-input');
       if (keyInput) keyInput.value = apiKey;
@@ -18881,8 +18860,8 @@ document.addEventListener('DOMContentLoaded', () => {
     </div>
     <div class="admin-apikey-card">
       <div class="admin-apikey-label">🔑 API Key Global</div>
-      <div class="admin-apikey-desc">Set API key Groq untuk semua user. Saat aktif, semua user otomatis pakai key ini tanpa perlu isi sendiri.</div>
-      <input type="password" class="admin-apikey-input" id="admin-apikey-input" placeholder="sk-or-...">
+      <div class="admin-apikey-desc">Set API key OpenRouter untuk semua user. Saat aktif, semua user otomatis pakai key ini tanpa perlu isi sendiri.</div>
+      <input type="password" class="admin-apikey-input" id="admin-apikey-input" placeholder="sk-or-v1-...">
       <div class="admin-apikey-row">
         <div class="admin-apikey-toggle-wrap">
           <span class="admin-apikey-toggle-label" id="admin-apikey-toggle-label">Global Key: OFF</span>
@@ -21112,7 +21091,7 @@ function closeSumberSheet() {
 
 // ══════════ MODEL PILL + SHEET ══════════
 function getActiveModelLabel() {
-  const val = localStorage.getItem('vx_model') || 'meta-llama/llama-3.3-70b-instruct:free';
+  const val = localStorage.getItem('vx_model') || 'openai/gpt-4o-mini';
   const models = (PROVIDERS['openrouter'] || {}).models || [];
   const found = models.find(m => m.value === val);
   return found ? found.label : val.split('/').pop();
@@ -21156,7 +21135,7 @@ function closeModelSheet() {
 function renderModelSheetList() {
   const list = document.getElementById('model-sheet-list');
   if (!list) return;
-  const currentVal = localStorage.getItem('vx_model') || 'meta-llama/llama-3.3-70b-instruct:free';
+  const currentVal = localStorage.getItem('vx_model') || 'openai/gpt-4o-mini';
   const pro = typeof isPro === 'function' && isPro();
   const models = (PROVIDERS['openrouter'] || {}).models || [];
 
@@ -21237,7 +21216,7 @@ function makeSheetItem(m, currentVal, locked) {
       updateModelPill();
       closeModelSheet();
       // Tampilkan toast jika pilih Apex
-      if (m.value === 'deepseek/deepseek-r1') {
+      if (m.value === 'anthropic/claude-opus-4-6') {
         showApexWarningToast();
       }
     });
