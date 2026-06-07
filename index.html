@@ -6714,6 +6714,10 @@ body.login-active #overlay {
           Panel Admin
         </button>
       </div>
+      <button class="settings-pop-item" onclick="openBugReportModal();closeSidebarSettingsPopup()">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 22c5.523 0 10-4.477 10-10S17.523 2 12 2 2 6.477 2 12s4.477 10 10 10z"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+        Lapor Bug
+      </button>
       <hr style="border:none;border-top:1px solid var(--border);margin:4px 0">
       <button class="settings-pop-item danger" onclick="doLogout()">
         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
@@ -20851,12 +20855,55 @@ document.addEventListener('DOMContentLoaded', () => {
       </div>
     </div>
 
+    <!-- ── BUG REPORTS CARD ── -->
+    <div class="admin-user-card" id="admin-bug-card">
+      <div class="admin-user-label">🐛 Laporan Bug</div>
+      <div class="admin-user-desc">Laporan bug dari semua user.</div>
+      <button onclick="adminLoadBugReports()" style="background:var(--surface2);border:1px solid var(--border2);color:var(--text);border-radius:8px;padding:6px 14px;font-size:.75rem;font-family:Inter,sans-serif;cursor:pointer;margin-bottom:10px;">🔄 Refresh Laporan</button>
+      <div id="admin-bug-list" style="display:flex;flex-direction:column;gap:8px;max-height:280px;overflow-y:auto;"></div>
+    </div>
+
     <div class="admin-panel-footer">
       Panel ini hanya dapat diakses oleh DevOwnAi1008
     </div>
   </div>
 </div>
 <!-- ══════════ END ADMIN PANEL MODAL ══════════ -->
+
+<!-- ══════════ BUG REPORT MODAL ══════════ -->
+<div id="bug-report-modal" onclick="if(event.target===this)closeBugReportModal()" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:300;place-items:center;backdrop-filter:blur(8px);">
+  <div style="background:var(--surface);border:1px solid var(--border2);border-radius:18px;padding:24px 24px 20px;width:calc(100% - 40px);max-width:460px;box-shadow:0 24px 80px rgba(0,0,0,.5);animation:fade-up .2s ease both;display:flex;flex-direction:column;gap:14px;">
+    <div style="display:flex;align-items:center;gap:10px;">
+      <div style="width:34px;height:34px;border-radius:10px;background:linear-gradient(135deg,rgba(204,107,61,.2),rgba(204,107,61,.08));border:1px solid rgba(204,107,61,.3);display:grid;place-items:center;font-size:16px;flex-shrink:0;">🐛</div>
+      <div style="font-family:'Syne',sans-serif;font-size:1rem;font-weight:800;color:var(--text);flex:1;">Lapor Bug</div>
+      <button onclick="closeBugReportModal()" style="width:28px;height:28px;border-radius:8px;background:none;border:1px solid var(--border2);color:var(--muted);cursor:pointer;font-size:13px;display:grid;place-items:center;">✕</button>
+    </div>
+    <div style="font-size:.75rem;color:var(--text2);line-height:1.5;padding:8px 10px;background:rgba(204,107,61,.05);border:1px solid rgba(204,107,61,.12);border-radius:8px;">
+      Temukan bug atau masalah? Ceritakan di sini dan kami akan segera perbaiki! 🔧
+    </div>
+    <div>
+      <div style="font-size:.7rem;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px;">Kategori Bug</div>
+      <select id="bug-category" style="width:100%;background:var(--surface2);border:1px solid var(--border2);border-radius:10px;color:var(--text);font-family:'Inter',sans-serif;font-size:.82rem;padding:8px 12px;outline:none;cursor:pointer;">
+        <option value="ui">🎨 Tampilan / UI</option>
+        <option value="chat">💬 Chat / Pesan</option>
+        <option value="login">🔐 Login / Akun</option>
+        <option value="fitur">⚙️ Fitur tidak berfungsi</option>
+        <option value="error">❌ Error / Crash</option>
+        <option value="lainnya">📌 Lainnya</option>
+      </select>
+    </div>
+    <div>
+      <div style="font-size:.7rem;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px;">Deskripsi Bug</div>
+      <textarea id="bug-description" placeholder="Ceritakan bug yang kamu temukan... (apa yang terjadi, kapan, dan bagaimana cara mereproduksinya)" style="width:100%;min-height:120px;max-height:220px;background:var(--surface2);border:1px solid var(--border2);border-radius:10px;color:var(--text);font-family:'Inter',sans-serif;font-size:.82rem;padding:10px 12px;resize:vertical;line-height:1.6;outline:none;box-sizing:border-box;transition:border-color .2s;" onfocus="this.style.borderColor='rgba(204,107,61,.5)'" onblur="this.style.borderColor='var(--border2)'"></textarea>
+      <div id="bug-char-counter" style="font-size:.66rem;color:var(--muted);text-align:right;margin-top:4px;">0 / 500</div>
+    </div>
+    <div style="display:flex;gap:8px;">
+      <button onclick="closeBugReportModal()" style="flex:1;padding:9px;border-radius:9px;border:1px solid var(--border2);background:none;color:var(--muted);font-family:'Inter',sans-serif;font-size:.78rem;cursor:pointer;">Batal</button>
+      <button id="bug-submit-btn" onclick="submitBugReport()" style="flex:2;padding:9px;border-radius:9px;border:none;background:linear-gradient(135deg,#cc6b3d,#a07850);color:#fff;font-family:'Inter',sans-serif;font-size:.78rem;font-weight:600;cursor:pointer;box-shadow:0 2px 8px rgba(204,107,61,.3);">🐛 Kirim Laporan</button>
+    </div>
+  </div>
+</div>
+<!-- ══════════ END BUG REPORT MODAL ══════════ -->
 <!-- ══════════ END FIREBASE + ADMIN ══════════ -->
 
 <script>
@@ -21349,6 +21396,109 @@ async function adminDoRevokePro() {
     setTimeout(_patchLoginForAdmin, 100);
   }
 })();
+
+// ══════════ BUG REPORT SYSTEM ══════════
+const _FB_BUG_PATH = _FB_CONFIG.databaseURL + '/bug_reports.json';
+
+function openBugReportModal() {
+  const modal = document.getElementById('bug-report-modal');
+  if (modal) {
+    modal.style.display = 'grid';
+    document.getElementById('bug-description').value = '';
+    document.getElementById('bug-char-counter').textContent = '0 / 500';
+    document.getElementById('bug-description').addEventListener('input', function() {
+      const len = this.value.length;
+      const counter = document.getElementById('bug-char-counter');
+      counter.textContent = len + ' / 500';
+      counter.style.color = len > 450 ? 'var(--danger)' : len > 350 ? '#e8976a' : 'var(--muted)';
+    });
+  }
+}
+
+function closeBugReportModal() {
+  const modal = document.getElementById('bug-report-modal');
+  if (modal) modal.style.display = 'none';
+}
+
+async function submitBugReport() {
+  const desc = document.getElementById('bug-description').value.trim();
+  const category = document.getElementById('bug-category').value;
+  if (!desc) {
+    document.getElementById('bug-description').style.borderColor = 'var(--danger)';
+    setTimeout(() => document.getElementById('bug-description').style.borderColor = 'var(--border2)', 2000);
+    return;
+  }
+  if (desc.length > 500) { alert('Deskripsi maksimal 500 karakter.'); return; }
+  const btn = document.getElementById('bug-submit-btn');
+  btn.disabled = true;
+  btn.textContent = 'Mengirim...';
+  try {
+    const report = {
+      username: (typeof currentUser !== 'undefined' && currentUser && !currentUser.isGuest) ? currentUser.username : 'Tamu',
+      userKey: (typeof currentUser !== 'undefined' && currentUser && !currentUser.isGuest) ? currentUser.key : 'guest',
+      category: category,
+      description: desc,
+      timestamp: Date.now(),
+      date: new Date().toLocaleString('id-ID'),
+      resolved: false
+    };
+    await fetch(_FB_CONFIG.databaseURL + '/bug_reports.json', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(report)
+    });
+    btn.textContent = '✅ Terkirim!';
+    setTimeout(() => { closeBugReportModal(); btn.disabled = false; btn.textContent = '🐛 Kirim Laporan'; }, 1500);
+  } catch(e) {
+    btn.disabled = false;
+    btn.textContent = '❌ Gagal, coba lagi';
+    setTimeout(() => { btn.textContent = '🐛 Kirim Laporan'; }, 2000);
+  }
+}
+
+async function adminLoadBugReports() {
+  if (!_isAdminUser()) return;
+  const listEl = document.getElementById('admin-bug-list');
+  if (!listEl) return;
+  listEl.innerHTML = '<div style="font-size:.75rem;color:var(--muted);padding:8px 0;">Memuat laporan...</div>';
+  try {
+    const res = await fetch(_FB_CONFIG.databaseURL + '/bug_reports.json');
+    const data = await res.json();
+    if (!data) { listEl.innerHTML = '<div style="font-size:.75rem;color:var(--muted);padding:8px 0;">Belum ada laporan bug. 🎉</div>'; return; }
+    const reports = Object.entries(data).map(([id, val]) => ({ id, ...val })).sort((a, b) => b.timestamp - a.timestamp);
+    const catEmoji = { ui:'🎨', chat:'💬', login:'🔐', fitur:'⚙️', error:'❌', lainnya:'📌' };
+    listEl.innerHTML = reports.map(r => `
+      <div style="background:var(--surface2);border:1px solid var(--border2);border-radius:10px;padding:10px 12px;font-size:.75rem;">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px;">
+          <span style="font-weight:600;color:var(--text);">${catEmoji[r.category]||'📌'} ${r.category||'lainnya'}</span>
+          <span style="color:var(--muted);font-size:.66rem;">${r.date||''}</span>
+        </div>
+        <div style="color:var(--text2);line-height:1.5;margin-bottom:6px;">${r.description||''}</div>
+        <div style="display:flex;align-items:center;justify-content:space-between;">
+          <span style="color:var(--muted);font-size:.66rem;">👤 ${r.username||'Tamu'}</span>
+          <button onclick="adminResolveBug('${r.id}', this)" style="background:${r.resolved?'rgba(122,158,126,.15)':'rgba(204,107,61,.1)'};border:1px solid ${r.resolved?'rgba(122,158,126,.3)':'rgba(204,107,61,.3)'};color:${r.resolved?'#7a9e7e':'#cc6b3d'};border-radius:6px;padding:3px 10px;font-size:.65rem;cursor:pointer;font-family:Inter,sans-serif;">${r.resolved?'✅ Selesai':'Tandai Selesai'}</button>
+        </div>
+      </div>`).join('');
+  } catch(e) {
+    listEl.innerHTML = '<div style="font-size:.75rem;color:var(--danger);padding:8px 0;">Gagal memuat laporan.</div>';
+  }
+}
+
+async function adminResolveBug(id, btn) {
+  if (!_isAdminUser()) return;
+  try {
+    await fetch(_FB_CONFIG.databaseURL + '/bug_reports/' + id + '.json', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ resolved: true })
+    });
+    btn.textContent = '✅ Selesai';
+    btn.style.background = 'rgba(122,158,126,.15)';
+    btn.style.borderColor = 'rgba(122,158,126,.3)';
+    btn.style.color = '#7a9e7e';
+  } catch(e) {}
+}
+// ══════════ END BUG REPORT SYSTEM ══════════
 </script>
 
 </body>
