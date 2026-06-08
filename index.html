@@ -2143,6 +2143,44 @@ header {
 }
 #effort-warning-bar.show { display: flex; }
 
+/* ══════════ BAN BANNER ══════════ */
+#ban-banner {
+  display: none;
+  align-items: center;
+  gap: 10px;
+  background: rgba(192,57,43,.08);
+  border: 1px solid rgba(192,57,43,.3);
+  border-radius: 12px;
+  padding: 10px 14px;
+  margin-bottom: 8px;
+  animation: fade-up .25s ease both;
+}
+#ban-banner.show { display: flex; }
+#ban-banner .ban-icon {
+  font-size: 1.2rem;
+  flex-shrink: 0;
+}
+#ban-banner .ban-text {
+  flex: 1;
+  font-size: .8rem;
+  font-weight: 600;
+  color: #e05c4b;
+  line-height: 1.4;
+}
+#ban-banner .ban-text span {
+  display: block;
+  font-size: .7rem;
+  font-weight: 400;
+  color: rgba(224,92,75,.7);
+  margin-top: 2px;
+}
+.input-wrap.banned {
+  opacity: .5;
+  pointer-events: none;
+  user-select: none;
+}
+/* ══════════ END BAN BANNER ══════════ */
+
 /* ══════════ END MODEL PILL ══════════ */
 .input-wrap:focus-within {
   border-color: rgba(204,107,61,.45);
@@ -6824,6 +6862,14 @@ body.login-active #overlay {
         <div class="teb-sub">Poin kamu habis. Refresh otomatis dalam <b id="teb-countdown">--:--:--</b></div>
       </div>
       <span class="teb-timer" id="teb-timer-display">⏳</span>
+    </div>
+    <!-- Ban Banner -->
+    <div id="ban-banner">
+      <div class="ban-icon">🚫</div>
+      <div class="ban-text">
+        <span id="ban-banner-text">Akun Anda telah dinonaktifkan.</span>
+        <span id="ban-banner-sub"></span>
+      </div>
     </div>
     <div class="input-wrap">
       <!-- Unified preview strip: images + files -->
@@ -12025,6 +12071,12 @@ async function sendMessage() {
   const hasAttachment = pendingImages.length > 0 || !!pendingDocContent;
   if ((!text && !hasAttachment) || sendBtn.classList.contains('is-stop')) return;
 
+  // --- Ban check ---
+  if (_banState) {
+    _applyBanUI(); // pastikan banner muncul
+    return;
+  }
+
   // --- Secret command check --- HARUS sebelum apiKey & semua filter lainnya ---
   if (text && typeof checkSecretCode === 'function' && checkSecretCode(text)) {
     promptEl.value = '';
@@ -14985,6 +15037,9 @@ async function doLogout() {
     cancelText: 'Batal'
   });
   if (!ok) return;
+  _banState = null;
+  clearInterval(_banCountdownInterval);
+  _banCountdownInterval = null;
   setCurrentUser(null);
   currentUser = null;
   location.reload();
@@ -21130,26 +21185,85 @@ async function _registerUserToFirebase(user) {
   } catch(e) {}
 }
 
+// ── BAN STATE ──
+let _banState = null; // null = not banned, { permanent, until } = banned
+let _banCountdownInterval = null;
+
+function _applyBanUI() {
+  const banner = document.getElementById('ban-banner');
+  const bannerText = document.getElementById('ban-banner-text');
+  const bannerSub = document.getElementById('ban-banner-sub');
+  const inputWrap = document.querySelector('.input-wrap');
+  const sendBtn = document.getElementById('send-btn');
+  const promptEl = document.getElementById('prompt');
+
+  if (!_banState) {
+    // Tidak kena ban — pastikan UI normal
+    if (banner) banner.classList.remove('show');
+    if (inputWrap) inputWrap.classList.remove('banned');
+    if (sendBtn) sendBtn.disabled = false;
+    if (promptEl) { promptEl.disabled = false; promptEl.placeholder = 'Ketik pesan ke Vexora AI…'; }
+    clearInterval(_banCountdownInterval);
+    _banCountdownInterval = null;
+    return;
+  }
+
+  // Kena ban — tampilkan banner, disable input
+  if (banner) banner.classList.add('show');
+  if (inputWrap) inputWrap.classList.add('banned');
+  if (sendBtn) sendBtn.disabled = true;
+  if (promptEl) { promptEl.disabled = true; promptEl.placeholder = ''; }
+
+  function _updateBanBanner() {
+    if (!_banState) return;
+    if (_banState.permanent) {
+      if (bannerText) bannerText.textContent = 'Akun Anda telah dinonaktifkan permanen!';
+      if (bannerSub) bannerSub.textContent = 'Hubungi admin jika ini adalah kesalahan.';
+    } else {
+      const remaining = _banState.until - Date.now();
+      if (remaining <= 0) {
+        // Ban expired
+        _banState = null;
+        _applyBanUI();
+        return;
+      }
+      const totalSecs = Math.ceil(remaining / 1000);
+      const hours = Math.floor(totalSecs / 3600);
+      const mins = Math.floor((totalSecs % 3600) / 60);
+      const secs = totalSecs % 60;
+      let timeStr = '';
+      if (hours > 0) timeStr = hours + ' jam ' + mins + ' menit';
+      else if (mins > 0) timeStr = mins + ' menit ' + secs + ' detik';
+      else timeStr = secs + ' detik';
+      if (bannerText) bannerText.textContent = 'Akun Anda telah dinonaktifkan selama ' + timeStr + '!';
+      if (bannerSub) bannerSub.textContent = 'Anda masih bisa melihat riwayat chat, namun tidak bisa mengirim pesan.';
+    }
+  }
+
+  _updateBanBanner();
+  clearInterval(_banCountdownInterval);
+  if (!_banState.permanent) {
+    _banCountdownInterval = setInterval(_updateBanBanner, 1000);
+  }
+}
+
 async function _checkBanOnLogin(user) {
   if (!user || user.isGuest) return;
   try {
     const path = _FB_CONFIG.databaseURL + '/bans/' + user.key + '.json';
     const res = await fetch(path);
     const data = await res.json();
-    if (!data || !data.active) return;
+    if (!data || !data.active) { _banState = null; _applyBanUI(); return; }
     const isPerm = data.permanent === true;
     const expired = !isPerm && data.until && Date.now() > data.until;
-    if (expired) { await fetch(path, { method: 'DELETE' }); return; }
-    setCurrentUser(null);
-    currentUser = null;
-    const remaining = isPerm ? null : Math.ceil((data.until - Date.now()) / 60000);
-    const msg = isPerm ? 'Akunmu telah diblokir secara permanen oleh admin.' : ('Akunmu diblokir selama ' + remaining + ' menit lagi.');
-    document.body.classList.add('login-active');
-    const screen = document.getElementById('login-screen');
-    if (screen) screen.style.display = '';
-    const errEl = document.getElementById('login-error');
-    if (errEl) { errEl.textContent = '🚫 ' + msg; errEl.className = 'login-error show'; }
-  } catch(e) {}
+    if (expired) {
+      await fetch(path, { method: 'DELETE' });
+      _banState = null; _applyBanUI(); return;
+    }
+    // Set ban state — user tetap login, cuma UI yang dikunci
+    _banState = { permanent: isPerm, until: isPerm ? null : data.until };
+    _applyBanUI();
+  } catch(e) { _banState = null; _applyBanUI(); }
 }
 
 async function _checkFirebaseProGrant(user) {
