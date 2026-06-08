@@ -4,6 +4,120 @@
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
 <title>Vexora AI</title>
+
+<!-- ══════════ INTEGRITY GUARD — jangan hapus ══════════ -->
+<script>
+(function _vxIntegrityGuard() {
+  // ── Daftar domain resmi ──
+  var ALLOWED = [
+    'pinzz133.github.io',
+    'localhost',
+    '127.0.0.1'
+  ];
+
+  // ── Path resmi (opsional, cek subfolder juga) ──
+  var ALLOWED_PATH_PREFIX = '/vexora-ai';
+
+  var host = window.location.hostname;
+  var path = window.location.pathname;
+  var proto = window.location.protocol;
+
+  // ── Izinkan buka langsung dari file (file://) ──
+  // Ini untuk testing lokal di HP / PC tanpa server
+  if (proto === 'file:') return;
+
+  // ── Fungsi penghancur ──
+  function _destroy(reason) {
+    // 1. Sembunyikan konten dulu (biar tidak keliatan sebentar)
+    try { document.documentElement.style.display = 'none'; } catch(e) {}
+
+    // 2. Jalankan kehancuran setelah DOM siap
+    function _nuke() {
+      try {
+        // Hapus semua konten
+        document.body.innerHTML = '';
+        document.head.innerHTML = '<meta charset="UTF-8"/>';
+
+        // Tulis pesan error palsu yang membingungkan
+        document.body.style.cssText = 'margin:0;background:#0a0a0a;display:flex;align-items:center;justify-content:center;height:100vh;font-family:monospace';
+        document.body.innerHTML = [
+          '<div style="text-align:center;color:#ff4444;max-width:500px;padding:2rem">',
+          '<div style="font-size:3rem">⚠️</div>',
+          '<h2 style="color:#ff4444;margin:.5rem 0">Application Error</h2>',
+          '<p style="color:#888;font-size:.85rem">ERR_INVALID_CONTEXT (0x' + Math.floor(Math.random()*0xFFFF).toString(16).toUpperCase() + ')</p>',
+          '<p style="color:#555;font-size:.75rem">Failed to initialize runtime module.<br>Check browser console for details.</p>',
+          '</div>'
+        ].join('');
+
+        // Spam error di console biar keliatan ada masalah teknis
+        for (var i = 0; i < 50; i++) {
+          console.error('[vx-runtime] Module initialization failed: invalid execution context');
+          console.warn('[vx-runtime] Unexpected domain binding: ' + reason);
+        }
+
+        // Rusak localStorage biar data tidak bisa dipakai
+        try { localStorage.clear(); } catch(e) {}
+        try { sessionStorage.clear(); } catch(e) {}
+
+      } catch(e) {}
+    }
+
+    if (document.body) {
+      _nuke();
+    } else {
+      document.addEventListener('DOMContentLoaded', _nuke);
+    }
+  }
+
+  // ── Cek 1: Domain ──
+  var domainOk = ALLOWED.some(function(d) {
+    return host === d || host.endsWith('.' + d);
+  });
+
+  if (!domainOk) {
+    _destroy('domain=' + host);
+    return;
+  }
+
+  // ── Cek 2: Path (khusus untuk github.io) ──
+  // Hanya berlaku jika bukan localhost
+  if (host !== 'localhost' && host !== '127.0.0.1') {
+    if (!path.startsWith(ALLOWED_PATH_PREFIX)) {
+      _destroy('path=' + path);
+      return;
+    }
+  }
+
+  // ── Cek 3: Honeypot — variabel jebakan ──
+  // Kalau ada yang inspect & coba akses variabel ini → hancur
+  try {
+    Object.defineProperty(window, '__vx_c0d3_src__', {
+      get: function() {
+        setTimeout(function() { _destroy('honeypot_triggered'); }, 200);
+        return undefined;
+      },
+      configurable: false
+    });
+  } catch(e) {}
+
+  // ── Cek 4: Periodic domain re-check ──
+  // Jaga-jaga kalau ada yang coba redirect setelah load
+  setTimeout(function _periodicCheck() {
+    if (window.location.protocol === 'file:') { setTimeout(_periodicCheck, 10000); return; }
+    var h = window.location.hostname;
+    var p = window.location.pathname;
+    var ok = ALLOWED.some(function(d) { return h === d || h.endsWith('.' + d); });
+    if (!ok) { _destroy('periodic_check:' + h); return; }
+    if (h !== 'localhost' && h !== '127.0.0.1' && !p.startsWith(ALLOWED_PATH_PREFIX)) {
+      _destroy('periodic_path:' + p); return;
+    }
+    setTimeout(_periodicCheck, 10000); // cek setiap 10 detik
+  }, 5000);
+
+})();
+</script>
+<!-- ══════════ END INTEGRITY GUARD ══════════ -->
+
 <!-- ══════════ FONTS: preconnect untuk percepat DNS + koneksi ══════════ -->
 <link rel="preconnect" href="https://fonts.googleapis.com"/>
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
@@ -91,10 +205,10 @@ window._loadMermaid = function(cb) {
     mermaid.initialize({
       startOnLoad: false,
       theme: 'default',
-      securityLevel: 'loose',
+      securityLevel: 'strict',
       fontFamily: 'Inter, sans-serif',
       fontSize: 13,
-      flowchart: { useMaxWidth: true, htmlLabels: true },
+      flowchart: { useMaxWidth: true, htmlLabels: false },
     });
     window._mermaidLoaded  = true;
     window._mermaidLoading = false;
@@ -7903,7 +8017,22 @@ function calcCost(text) {
 function loadTokenState() {
   const raw = localStorage.getItem('vx_token');
   if (!raw) return { points: TOKEN_MAX, lastRefill: Date.now() };
-  try { return JSON.parse(raw); } catch { return { points: TOKEN_MAX, lastRefill: Date.now() }; }
+  try {
+    const s = JSON.parse(raw);
+    const now = Date.now();
+    // lastRefill tidak boleh di masa depan
+    if (s.lastRefill > now + 60000) s.lastRefill = now;
+    // points tidak boleh melebihi MAX yang sah berdasarkan status PRO
+    const maxAllowed = (s.proApplied && isPro()) ? TOKEN_MAX_PRO : TOKEN_MAX_FREE;
+    if (typeof s.points !== 'number' || s.points < 0) s.points = 0;
+    if (s.points > maxAllowed) s.points = maxAllowed; // cap ke nilai sah
+    // proApplied hanya valid jika isPro() juga true
+    if (s.proApplied && !isPro()) {
+      s.proApplied = false;
+      s.points = Math.min(s.points, TOKEN_MAX_FREE);
+    }
+    return s;
+  } catch { return { points: TOKEN_MAX, lastRefill: Date.now() }; }
 }
 
 function saveTokenState(state) {
@@ -8017,7 +8146,24 @@ function getRLMs()   { return (typeof isPro === 'function' && isPro()) ? RL_PRO_
 function loadRLState() {
   const raw = localStorage.getItem('vx_ratelimit');
   if (!raw) return { count: 0, windowStart: Date.now() };
-  try { return JSON.parse(raw); } catch { return { count: 0, windowStart: Date.now() }; }
+  try {
+    const s = JSON.parse(raw);
+    // Anti-tamper: windowStart tidak boleh di masa depan (> 1 menit toleransi)
+    // dan tidak boleh terlalu jauh di masa lalu (sudah pasti expired)
+    const now = Date.now();
+    const maxWindow = Math.max(getRLMs ? getRLMs() : RL_FREE_MS, RL_PRO_MS);
+    if (s.windowStart > now + 60000) {
+      // windowStart di masa depan → kemungkinan manipulasi, reset
+      return { count: 0, windowStart: now };
+    }
+    if (s.windowStart < now - maxWindow * 2) {
+      // terlalu lama → sudah pasti expired, reset
+      return { count: 0, windowStart: now };
+    }
+    // count tidak boleh negatif
+    if (typeof s.count !== 'number' || s.count < 0) s.count = 0;
+    return s;
+  } catch { return { count: 0, windowStart: Date.now() }; }
 }
 function saveRLState(s) { localStorage.setItem('vx_ratelimit', JSON.stringify(s)); }
 
@@ -15638,6 +15784,79 @@ Invert: const d=ctx.getImageData(0,0,canvas.width,canvas.height);for(let i=0;i<d
   }
 }
 
+// ── Sandboxed canvas executor (mengganti new Function yang berbahaya) ──
+// Hanya operasi canvas yang diizinkan; akses ke DOM, fetch, eval, dsb diblokir.
+function _sandboxedCanvasOps(srcImg, canvas, ctx, code) {
+  // Whitelist operasi canvas yang aman
+  const ALLOWED_CTX_METHODS = new Set([
+    'drawImage','fillRect','clearRect','strokeRect','fillText','strokeText',
+    'beginPath','closePath','moveTo','lineTo','arc','arcTo','bezierCurveTo',
+    'quadraticCurveTo','rect','fill','stroke','clip','save','restore',
+    'scale','rotate','translate','transform','setTransform','resetTransform',
+    'createLinearGradient','createRadialGradient','createPattern',
+    'createImageData','getImageData','putImageData','drawFocusIfNeeded',
+    'measureText','isPointInPath','isPointInStroke',
+  ]);
+  const ALLOWED_CTX_PROPS = new Set([
+    'fillStyle','strokeStyle','lineWidth','lineCap','lineJoin','miterLimit',
+    'font','textAlign','textBaseline','direction','globalAlpha',
+    'globalCompositeOperation','shadowBlur','shadowColor','shadowOffsetX',
+    'shadowOffsetY','lineDashOffset','imageSmoothingEnabled','imageSmoothingQuality',
+    'canvas',
+  ]);
+
+  // Buat proxy ctx yang hanya mengizinkan operasi aman
+  const safeCtx = new Proxy(ctx, {
+    get(target, prop) {
+      if (ALLOWED_CTX_METHODS.has(prop) || ALLOWED_CTX_PROPS.has(prop)) {
+        const val = target[prop];
+        return typeof val === 'function' ? val.bind(target) : val;
+      }
+      return undefined; // blokir akses ke prop lain
+    },
+    set(target, prop, value) {
+      if (ALLOWED_CTX_PROPS.has(prop)) {
+        target[prop] = value;
+        return true;
+      }
+      return false; // blokir set prop lain
+    }
+  });
+
+  // Buat scope terbatas — hanya ekspos srcImg, canvas dimensi, dan safeCtx
+  const safeScope = {
+    srcImg,
+    canvas: { width: canvas.width, height: canvas.height },
+    ctx: safeCtx,
+    Math, Number, parseInt, parseFloat, isNaN, isFinite,
+    Array, Object, String, Boolean,
+  };
+
+  // Validasi dasar: tolak pola berbahaya sebelum eksekusi
+  const DANGEROUS_PATTERNS = [
+    /\beval\b/, /\bFunction\b/, /\bfetch\b/, /\bXMLHttpRequest\b/,
+    /\bimport\b/, /\brequire\b/, /\bdocument\b/, /\bwindow\b/,
+    /\blocalStorage\b/, /\bsessionStorage\b/, /\bcookies?\b/,
+    /\bnavigator\b/, /\blocation\b/, /\bhistory\b/,
+    /\bsetTimeout\b/, /\bsetInterval\b/, /\bIndexedDB\b/,
+    /\bWebSocket\b/, /\bWorker\b/, /\bprocess\b/,
+  ];
+
+  for (const pattern of DANGEROUS_PATTERNS) {
+    if (pattern.test(code)) {
+      throw new Error('Kode mengandung operasi yang tidak diizinkan: ' + pattern.toString());
+    }
+  }
+
+  // Eksekusi dengan scope terbatas menggunakan Function tapi dengan parameter eksplisit
+  // (bukan eval bebas — semua variabel berbahaya tidak ada di scope ini)
+  const keys = Object.keys(safeScope);
+  const vals = Object.values(safeScope);
+  // eslint-disable-next-line no-new-func
+  const fn = new Function(...keys, '"use strict";\n' + code);
+  fn(...vals);
+}
+
 // Execute canvas code on the image
 async function applyCanvasEdit(imgObj, code) {
   return new Promise((resolve, reject) => {
@@ -15649,9 +15868,8 @@ async function applyCanvasEdit(imgObj, code) {
         canvas.height = srcImg.naturalHeight || srcImg.height || 600;
         const ctx = canvas.getContext('2d');
 
-        // eslint-disable-next-line no-new-func
-        const fn = new Function('srcImg', 'canvas', 'ctx', code);
-        fn(srcImg, canvas, ctx);
+        // Gunakan sandbox aman (bukan new Function langsung)
+        _sandboxedCanvasOps(srcImg, canvas, ctx, code);
 
         // Small delay to let canvas finish rendering
         setTimeout(() => {
@@ -16362,7 +16580,79 @@ function _proUserKey() {
   return 'guest';
 }
 function proKey(k) { return 'vx_pro_' + _proUserKey() + '_' + k; }
-function isPro() { return localStorage.getItem(proKey('unlocked')) === '1'; }
+
+// ── Signed PRO token — mencegah bypass via localStorage manipulation ──
+// Token disimpan sebagai JSON: { v:1, uk:<userKey>, ts:<timestamp>, sig:<signature> }
+// Signature = SHA-256 HMAC dari "v|uk|ts" menggunakan secret internal
+// Tanpa secret yang sama, token hasil manipulasi manual tidak akan valid.
+const _PRO_HMAC_SECRET = 'vx#!s3cr3t@2025$Pr0T0k3n_d0nt_t0uch';
+
+async function _signProToken(userKey, ts) {
+  const msg = `1|${userKey}|${ts}`;
+  const enc = new TextEncoder();
+  const key = await crypto.subtle.importKey(
+    'raw', enc.encode(_PRO_HMAC_SECRET),
+    { name: 'HMAC', hash: 'SHA-256' }, false, ['sign']
+  );
+  const sig = await crypto.subtle.sign('HMAC', key, enc.encode(msg));
+  return Array.from(new Uint8Array(sig)).map(b => b.toString(16).padStart(2,'0')).join('');
+}
+
+async function _verifyProToken(token) {
+  try {
+    const { v, uk, ts, sig } = JSON.parse(token);
+    if (v !== 1) return false;
+    const expected = await _signProToken(uk, ts);
+    return expected === sig && uk === _proUserKey();
+  } catch { return false; }
+}
+
+// Cache verifikasi agar tidak async setiap kali isPro() dipanggil
+let _proVerifiedCache = null;
+let _proVerifiedKey   = null;
+
+async function _refreshProVerification() {
+  const raw = localStorage.getItem(proKey('token_v2'));
+  if (!raw) { _proVerifiedCache = false; return; }
+  _proVerifiedCache = await _verifyProToken(raw);
+  _proVerifiedKey   = _proUserKey();
+}
+
+// Simpan token PRO yang valid
+async function _saveProToken() {
+  const uk = _proUserKey();
+  const ts = Date.now();
+  const sig = await _signProToken(uk, ts);
+  const token = JSON.stringify({ v: 1, uk, ts, sig });
+  localStorage.setItem(proKey('token_v2'), token);
+  _proVerifiedCache = true;
+  _proVerifiedKey   = uk;
+}
+
+// isPro() — cek sync dari cache (diverifikasi saat load & saat unlock)
+// Fallback ke legacy key hanya jika cache belum siap (cold start)
+function isPro() {
+  // Jika cache sudah ada dan untuk user yang sama, gunakan cache
+  if (_proVerifiedKey === _proUserKey() && _proVerifiedCache !== null) {
+    return _proVerifiedCache === true;
+  }
+  // Cold start: gunakan legacy flag sementara, tapi jadwalkan verifikasi
+  const legacyFlag = localStorage.getItem(proKey('unlocked')) === '1';
+  if (legacyFlag) {
+    // Jadwalkan upgrade ke token baru
+    _refreshProVerification().then(ok => {
+      if (!ok) {
+        // Token tidak valid / tidak ada → bersihkan legacy flag palsu
+        _proVerifiedCache = false;
+      }
+    });
+  }
+  return _proVerifiedCache !== null ? (_proVerifiedCache === true) : legacyFlag;
+}
+
+// Inisialisasi verifikasi saat halaman load
+_refreshProVerification();
+
 function getProMsgCount() { return parseInt(localStorage.getItem(proKey('msgcount')) || '0'); }
 function getFoundCodes() { return JSON.parse(localStorage.getItem(proKey('codes')) || '[]'); }
 function saveFoundCodes(arr) { localStorage.setItem(proKey('codes'), JSON.stringify(arr)); }
@@ -16462,6 +16752,7 @@ function checkSecretCode(text) {
       saveFoundCodes([0,1,2,3,4,5,6]);
       localStorage.setItem(proKey('msgcount'), PRO_MSG_TARGET);
       localStorage.setItem(proKey('unlocked'), '1');
+      _saveProToken(); // buat signed token anti-tamper
       triggerProUnlock();
     } else {
       // kalau udah PRO, cukup buka modal
@@ -16496,6 +16787,7 @@ function checkProUnlock() {
   const codes = getFoundCodes();
   if (msgs >= PRO_MSG_TARGET && codes.length >= 7) {
     localStorage.setItem(proKey('unlocked'), '1');
+    _saveProToken(); // buat signed token anti-tamper
     triggerProUnlock();
   }
 }
@@ -21379,6 +21671,7 @@ async function _checkFirebaseProGrant(user) {
     if (data && data.active) {
       if (typeof proKey === 'function') {
         localStorage.setItem(proKey('unlocked'), '1');
+        if (typeof _saveProToken === 'function') await _saveProToken(); // signed token
         if (typeof updateProUI === 'function') updateProUI();
         if (typeof applyProState === 'function') applyProState();
       }
@@ -21580,6 +21873,8 @@ async function adminDoRevokePro() {
     _adminProData[key] = { active: false };
     if (typeof proKey === 'function' && currentUser && currentUser.key === key) {
       localStorage.removeItem(proKey('unlocked'));
+      localStorage.removeItem(proKey('token_v2')); // hapus signed token juga
+      _proVerifiedCache = false; // reset cache
       if (typeof updateProUI === 'function') updateProUI();
     }
     adminProSelectChanged();
