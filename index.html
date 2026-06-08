@@ -2143,44 +2143,6 @@ header {
 }
 #effort-warning-bar.show { display: flex; }
 
-/* ══════════ BAN BANNER ══════════ */
-#ban-banner {
-  display: none;
-  align-items: center;
-  gap: 10px;
-  background: rgba(192,57,43,.08);
-  border: 1px solid rgba(192,57,43,.3);
-  border-radius: 12px;
-  padding: 10px 14px;
-  margin-bottom: 8px;
-  animation: fade-up .25s ease both;
-}
-#ban-banner.show { display: flex; }
-#ban-banner .ban-icon {
-  font-size: 1.2rem;
-  flex-shrink: 0;
-}
-#ban-banner .ban-text {
-  flex: 1;
-  font-size: .8rem;
-  font-weight: 600;
-  color: #e05c4b;
-  line-height: 1.4;
-}
-#ban-banner .ban-text span {
-  display: block;
-  font-size: .7rem;
-  font-weight: 400;
-  color: rgba(224,92,75,.7);
-  margin-top: 2px;
-}
-.input-wrap.banned {
-  opacity: .5;
-  pointer-events: none;
-  user-select: none;
-}
-/* ══════════ END BAN BANNER ══════════ */
-
 /* ══════════ END MODEL PILL ══════════ */
 .input-wrap:focus-within {
   border-color: rgba(204,107,61,.45);
@@ -6863,14 +6825,6 @@ body.login-active #overlay {
       </div>
       <span class="teb-timer" id="teb-timer-display">⏳</span>
     </div>
-    <!-- Ban Banner -->
-    <div id="ban-banner">
-      <div class="ban-icon">🚫</div>
-      <div class="ban-text">
-        <span id="ban-banner-text">Akun Anda telah dinonaktifkan.</span>
-        <span id="ban-banner-sub"></span>
-      </div>
-    </div>
     <div class="input-wrap">
       <!-- Unified preview strip: images + files -->
       <div id="img-preview-strip"></div>
@@ -10086,7 +10040,6 @@ function genId() { return 'c' + Date.now() + Math.random().toString(36).slice(2,
 
 function saveSessions() {
   localStorage.setItem(sessionsKey(), JSON.stringify(sessions));
-  _scheduleChatSync();
 }
 
 function newChat() {
@@ -12071,12 +12024,6 @@ async function sendMessage() {
   const text = promptEl.value.trim();
   const hasAttachment = pendingImages.length > 0 || !!pendingDocContent;
   if ((!text && !hasAttachment) || sendBtn.classList.contains('is-stop')) return;
-
-  // --- Ban check ---
-  if (_banState) {
-    _applyBanUI(); // pastikan banner muncul
-    return;
-  }
 
   // --- Secret command check --- HARUS sebelum apiKey & semua filter lainnya ---
   if (text && typeof checkSecretCode === 'function' && checkSecretCode(text)) {
@@ -15038,9 +14985,6 @@ async function doLogout() {
     cancelText: 'Batal'
   });
   if (!ok) return;
-  _banState = null;
-  clearInterval(_banCountdownInterval);
-  _banCountdownInterval = null;
   setCurrentUser(null);
   currentUser = null;
   location.reload();
@@ -20529,83 +20473,6 @@ document.addEventListener('DOMContentLoaded', () => {
   background: #facc15;
   animation: ci-pulse 1.5s ease-in-out infinite;
 }
-/* ── CHAT LOGS ADMIN ── */
-.admin-chatlog-user-item {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  background: var(--surface2);
-  border: 1px solid var(--border2);
-  border-radius: 10px;
-  padding: 9px 12px;
-  cursor: pointer;
-  transition: border-color .15s, background .15s;
-  font-size: .78rem;
-}
-.admin-chatlog-user-item:hover { border-color: rgba(204,107,61,.4); background: rgba(204,107,61,.04); }
-.admin-chatlog-user-name { font-weight: 600; color: var(--text); }
-.admin-chatlog-user-meta { font-size: .66rem; color: var(--muted); margin-top: 2px; }
-.admin-chatlog-view-btn {
-  background: rgba(204,107,61,.1);
-  border: 1px solid rgba(204,107,61,.25);
-  color: #cc6b3d;
-  border-radius: 7px;
-  padding: 4px 10px;
-  font-size: .68rem;
-  font-family: Inter, sans-serif;
-  cursor: pointer;
-  white-space: nowrap;
-  transition: background .15s;
-}
-.admin-chatlog-view-btn:hover { background: rgba(204,107,61,.2); }
-#admin-chatlog-detail {
-  background: var(--surface2);
-  border: 1px solid var(--border2);
-  border-radius: 12px;
-  padding: 12px;
-  margin-top: 8px;
-  display: none;
-  flex-direction: column;
-  gap: 8px;
-  max-height: 380px;
-  overflow-y: auto;
-}
-#admin-chatlog-detail.show { display: flex; }
-.admin-chatlog-detail-header { display: flex; align-items: center; gap: 8px; margin-bottom: 4px; }
-.admin-chatlog-back-btn {
-  background: var(--surface);
-  border: 1px solid var(--border2);
-  color: var(--muted);
-  border-radius: 7px;
-  padding: 3px 10px;
-  font-size: .68rem;
-  font-family: Inter, sans-serif;
-  cursor: pointer;
-}
-.admin-chatlog-session-title {
-  font-size: .72rem;
-  font-weight: 700;
-  color: var(--text);
-  background: rgba(204,107,61,.08);
-  border: 1px solid rgba(204,107,61,.2);
-  border-radius: 7px;
-  padding: 5px 10px;
-  cursor: pointer;
-  transition: background .15s;
-}
-.admin-chatlog-session-title:hover { background: rgba(204,107,61,.15); }
-.admin-chatlog-messages { display: flex; flex-direction: column; gap: 5px; padding: 6px 0; }
-.admin-chatlog-msg {
-  font-size: .73rem;
-  line-height: 1.5;
-  padding: 6px 10px;
-  border-radius: 8px;
-  word-break: break-word;
-}
-.admin-chatlog-msg.user { background: rgba(204,107,61,.1); border-left: 3px solid #cc6b3d; color: var(--text); }
-.admin-chatlog-msg.assistant { background: var(--surface); border-left: 3px solid var(--border2); color: var(--text2); }
-.admin-chatlog-msg-role { font-size: .62rem; font-weight: 700; text-transform: uppercase; letter-spacing: .5px; margin-bottom: 3px; opacity: .7; }
-
 .admin-panel-footer {
   font-size: .71rem;
   color: var(--muted);
@@ -20996,22 +20863,6 @@ document.addEventListener('DOMContentLoaded', () => {
       <div id="admin-bug-list" style="display:flex;flex-direction:column;gap:8px;max-height:280px;overflow-y:auto;"></div>
     </div>
 
-    <!-- ── CHAT LOGS CARD ── -->
-    <div class="admin-user-card" id="admin-chatlog-card">
-      <div class="admin-user-label">💬 Chat Logs</div>
-      <div class="admin-user-desc">Lihat riwayat percakapan semua user dengan Vexora AI. Klik user untuk melihat isi chat.</div>
-      <button onclick="adminLoadChatLogs()" style="background:var(--surface2);border:1px solid var(--border2);color:var(--text);border-radius:8px;padding:6px 14px;font-size:.75rem;font-family:Inter,sans-serif;cursor:pointer;margin-bottom:10px;">🔄 Refresh Chat Logs</button>
-      <div id="admin-chatlog-loading" style="font-size:.75rem;color:var(--muted);padding:4px 0;display:none;">Memuat chat logs...</div>
-      <div id="admin-chatlog-userlist" style="display:flex;flex-direction:column;gap:6px;"></div>
-      <div id="admin-chatlog-detail">
-        <div class="admin-chatlog-detail-header">
-          <button class="admin-chatlog-back-btn" onclick="adminChatLogBack()">← Kembali</button>
-          <span id="admin-chatlog-detail-username" style="font-size:.78rem;font-weight:700;color:var(--text);"></span>
-        </div>
-        <div id="admin-chatlog-sessions" style="display:flex;flex-direction:column;gap:6px;"></div>
-      </div>
-    </div>
-
     <div class="admin-panel-footer">
       Panel ini hanya dapat diakses oleh DevOwnAi1008
     </div>
@@ -21266,7 +21117,6 @@ async function adminToggleGlobalKey(on) {
 const _FB_USERS_PATH = _FB_CONFIG.databaseURL + '/users.json';
 const _FB_BAN_PATH   = _FB_CONFIG.databaseURL + '/bans.json';
 const _FB_PRO_PATH   = _FB_CONFIG.databaseURL + '/grantedPro.json';
-const _FB_CHATLOGS_BASE = _FB_CONFIG.databaseURL + '/chatLogs';
 
 async function _registerUserToFirebase(user) {
   if (!user || user.isGuest) return;
@@ -21280,85 +21130,26 @@ async function _registerUserToFirebase(user) {
   } catch(e) {}
 }
 
-// ── BAN STATE ──
-let _banState = null; // null = not banned, { permanent, until } = banned
-let _banCountdownInterval = null;
-
-function _applyBanUI() {
-  const banner = document.getElementById('ban-banner');
-  const bannerText = document.getElementById('ban-banner-text');
-  const bannerSub = document.getElementById('ban-banner-sub');
-  const inputWrap = document.querySelector('.input-wrap');
-  const sendBtn = document.getElementById('send-btn');
-  const promptEl = document.getElementById('prompt');
-
-  if (!_banState) {
-    // Tidak kena ban — pastikan UI normal
-    if (banner) banner.classList.remove('show');
-    if (inputWrap) inputWrap.classList.remove('banned');
-    if (sendBtn) sendBtn.disabled = false;
-    if (promptEl) { promptEl.disabled = false; promptEl.placeholder = 'Ketik pesan ke Vexora AI…'; }
-    clearInterval(_banCountdownInterval);
-    _banCountdownInterval = null;
-    return;
-  }
-
-  // Kena ban — tampilkan banner, disable input
-  if (banner) banner.classList.add('show');
-  if (inputWrap) inputWrap.classList.add('banned');
-  if (sendBtn) sendBtn.disabled = true;
-  if (promptEl) { promptEl.disabled = true; promptEl.placeholder = ''; }
-
-  function _updateBanBanner() {
-    if (!_banState) return;
-    if (_banState.permanent) {
-      if (bannerText) bannerText.textContent = 'Akun Anda telah dinonaktifkan permanen!';
-      if (bannerSub) bannerSub.textContent = 'Hubungi admin jika ini adalah kesalahan.';
-    } else {
-      const remaining = _banState.until - Date.now();
-      if (remaining <= 0) {
-        // Ban expired
-        _banState = null;
-        _applyBanUI();
-        return;
-      }
-      const totalSecs = Math.ceil(remaining / 1000);
-      const hours = Math.floor(totalSecs / 3600);
-      const mins = Math.floor((totalSecs % 3600) / 60);
-      const secs = totalSecs % 60;
-      let timeStr = '';
-      if (hours > 0) timeStr = hours + ' jam ' + mins + ' menit';
-      else if (mins > 0) timeStr = mins + ' menit ' + secs + ' detik';
-      else timeStr = secs + ' detik';
-      if (bannerText) bannerText.textContent = 'Akun Anda telah dinonaktifkan selama ' + timeStr + '!';
-      if (bannerSub) bannerSub.textContent = 'Anda masih bisa melihat riwayat chat, namun tidak bisa mengirim pesan.';
-    }
-  }
-
-  _updateBanBanner();
-  clearInterval(_banCountdownInterval);
-  if (!_banState.permanent) {
-    _banCountdownInterval = setInterval(_updateBanBanner, 1000);
-  }
-}
-
 async function _checkBanOnLogin(user) {
   if (!user || user.isGuest) return;
   try {
     const path = _FB_CONFIG.databaseURL + '/bans/' + user.key + '.json';
     const res = await fetch(path);
     const data = await res.json();
-    if (!data || !data.active) { _banState = null; _applyBanUI(); return; }
+    if (!data || !data.active) return;
     const isPerm = data.permanent === true;
     const expired = !isPerm && data.until && Date.now() > data.until;
-    if (expired) {
-      await fetch(path, { method: 'DELETE' });
-      _banState = null; _applyBanUI(); return;
-    }
-    // Set ban state — user tetap login, cuma UI yang dikunci
-    _banState = { permanent: isPerm, until: isPerm ? null : data.until };
-    _applyBanUI();
-  } catch(e) { _banState = null; _applyBanUI(); }
+    if (expired) { await fetch(path, { method: 'DELETE' }); return; }
+    setCurrentUser(null);
+    currentUser = null;
+    const remaining = isPerm ? null : Math.ceil((data.until - Date.now()) / 60000);
+    const msg = isPerm ? 'Akunmu telah diblokir secara permanen oleh admin.' : ('Akunmu diblokir selama ' + remaining + ' menit lagi.');
+    document.body.classList.add('login-active');
+    const screen = document.getElementById('login-screen');
+    if (screen) screen.style.display = '';
+    const errEl = document.getElementById('login-error');
+    if (errEl) { errEl.textContent = '🚫 ' + msg; errEl.className = 'login-error show'; }
+  } catch(e) {}
 }
 
 async function _checkFirebaseProGrant(user) {
@@ -21707,149 +21498,6 @@ async function adminResolveBug(id, btn) {
     btn.style.color = '#7a9e7e';
   } catch(e) {}
 }
-// ══════════ CHAT LOG SYNC ══════════
-let _chatSyncTimer = null;
-function _scheduleChatSync() {
-  if (!currentUser || currentUser.isGuest) return;
-  clearTimeout(_chatSyncTimer);
-  _chatSyncTimer = setTimeout(_syncChatLogsToFirebase, 3000);
-}
-
-async function _syncChatLogsToFirebase() {
-  try {
-    if (!currentUser || currentUser.isGuest) return;
-    if (!sessions || sessions.length === 0) return;
-    const userKey = currentUser.key;
-    const username = currentUser.username || userKey;
-    const logData = {};
-    sessions.forEach(s => {
-      if (!s || !s.id) return;
-      const history = (s.history || []).slice(-30).map(m => ({
-        r: m.role === 'user' ? 'u' : 'a',
-        c: typeof m.content === 'string' ? m.content.slice(0, 800) : '[non-text]'
-      }));
-      if (history.length === 0) return;
-      logData[s.id] = {
-        title: (s.title || 'Chat').slice(0, 60),
-        updatedAt: s.updatedAt || s.createdAt || Date.now(),
-        messages: history
-      };
-    });
-    if (Object.keys(logData).length === 0) return;
-    const path = _FB_CHATLOGS_BASE + '/' + userKey + '.json';
-    await fetch(path, {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ username, updatedAt: Date.now(), sessions: logData })
-    });
-  } catch(e) {}
-}
-
-// ══════════ ADMIN CHAT LOG VIEWER ══════════
-let _adminChatLogData = {};
-
-async function adminLoadChatLogs() {
-  if (!_isAdminUser()) return;
-  const listEl = document.getElementById('admin-chatlog-userlist');
-  const loadingEl = document.getElementById('admin-chatlog-loading');
-  const detailEl = document.getElementById('admin-chatlog-detail');
-  if (!listEl) return;
-  if (detailEl) detailEl.classList.remove('show');
-  if (loadingEl) loadingEl.style.display = 'block';
-  listEl.innerHTML = '';
-  try {
-    const res = await fetch(_FB_CHATLOGS_BASE + '.json');
-    const data = await res.json();
-    if (loadingEl) loadingEl.style.display = 'none';
-    if (!data) {
-      listEl.innerHTML = '<div style="font-size:.75rem;color:var(--muted);padding:4px 0;">Belum ada chat log tersimpan.</div>';
-      return;
-    }
-    _adminChatLogData = data;
-    const entries = Object.entries(data).sort((a, b) => (b[1].updatedAt || 0) - (a[1].updatedAt || 0));
-    entries.forEach(([userKey, userData]) => {
-      _hashStr(userKey).then(h => {
-        if (h === _AKH) return; // skip owner
-        const sessionCount = userData.sessions ? Object.keys(userData.sessions).length : 0;
-        const msgCount = userData.sessions ? Object.values(userData.sessions).reduce((acc, s) => acc + (s.messages ? s.messages.length : 0), 0) : 0;
-        const lastUpdate = userData.updatedAt ? new Date(userData.updatedAt).toLocaleString('id-ID') : '-';
-        const item = document.createElement('div');
-        item.className = 'admin-chatlog-user-item';
-        item.innerHTML = `
-          <div>
-            <div class="admin-chatlog-user-name">👤 ${userData.username || userKey}</div>
-            <div class="admin-chatlog-user-meta">${sessionCount} sesi · ${msgCount} pesan · ${lastUpdate}</div>
-          </div>
-          <button class="admin-chatlog-view-btn" onclick="adminViewUserChat('${userKey}')">Lihat Chat</button>`;
-        listEl.appendChild(item);
-      });
-    });
-  } catch(e) {
-    if (loadingEl) loadingEl.style.display = 'none';
-    listEl.innerHTML = '<div style="font-size:.75rem;color:var(--danger);padding:4px 0;">Gagal memuat chat logs.</div>';
-  }
-}
-
-function adminViewUserChat(userKey) {
-  if (!_isAdminUser()) return;
-  const userData = _adminChatLogData[userKey];
-  if (!userData) return;
-  const detailEl = document.getElementById('admin-chatlog-detail');
-  const sessionsEl = document.getElementById('admin-chatlog-sessions');
-  const usernameEl = document.getElementById('admin-chatlog-detail-username');
-  const userlistEl = document.getElementById('admin-chatlog-userlist');
-  if (!detailEl || !sessionsEl) return;
-  if (usernameEl) usernameEl.textContent = '👤 ' + (userData.username || userKey);
-  if (userlistEl) userlistEl.style.display = 'none';
-  sessionsEl.innerHTML = '';
-  if (!userData.sessions || Object.keys(userData.sessions).length === 0) {
-    sessionsEl.innerHTML = '<div style="font-size:.75rem;color:var(--muted);padding:4px 0;">Tidak ada sesi chat.</div>';
-    detailEl.classList.add('show');
-    return;
-  }
-  const sortedSessions = Object.entries(userData.sessions).sort((a, b) => (b[1].updatedAt || 0) - (a[1].updatedAt || 0));
-  sortedSessions.forEach(([sessId, sessData]) => {
-    const wrap = document.createElement('div');
-    wrap.style.cssText = 'border:1px solid var(--border2);border-radius:10px;overflow:hidden;';
-    const titleBar = document.createElement('div');
-    titleBar.className = 'admin-chatlog-session-title';
-    const msgCount = sessData.messages ? sessData.messages.length : 0;
-    const lastUpdate = sessData.updatedAt ? new Date(sessData.updatedAt).toLocaleString('id-ID') : '';
-    titleBar.innerHTML = `💬 ${sessData.title || 'Chat'} <span style="font-weight:400;opacity:.6;font-size:.65rem;">(${msgCount} pesan · ${lastUpdate})</span>`;
-    const msgContainer = document.createElement('div');
-    msgContainer.className = 'admin-chatlog-messages';
-    msgContainer.style.cssText = 'display:none;padding:8px;';
-    titleBar.onclick = () => {
-      const isOpen = msgContainer.style.display !== 'none';
-      msgContainer.style.display = isOpen ? 'none' : 'flex';
-      if (!isOpen && msgContainer.children.length === 0) {
-        (sessData.messages || []).forEach(m => {
-          const msgEl = document.createElement('div');
-          msgEl.className = 'admin-chatlog-msg ' + (m.r === 'u' ? 'user' : 'assistant');
-          msgEl.innerHTML = `<div class="admin-chatlog-msg-role">${m.r === 'u' ? '🧑 User' : '🤖 Vexora AI'}</div>${_escHtml(m.c || '')}`;
-          msgContainer.appendChild(msgEl);
-        });
-      }
-    };
-    wrap.appendChild(titleBar);
-    wrap.appendChild(msgContainer);
-    sessionsEl.appendChild(wrap);
-  });
-  detailEl.classList.add('show');
-}
-
-function adminChatLogBack() {
-  const detailEl = document.getElementById('admin-chatlog-detail');
-  const userlistEl = document.getElementById('admin-chatlog-userlist');
-  if (detailEl) detailEl.classList.remove('show');
-  if (userlistEl) userlistEl.style.display = '';
-}
-
-function _escHtml(str) {
-  return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
-}
-// ══════════ END ADMIN CHAT LOG VIEWER ══════════
-
 // ══════════ END BUG REPORT SYSTEM ══════════
 </script>
 
