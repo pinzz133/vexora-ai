@@ -4,28 +4,106 @@
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
 <title>Vexora AI</title>
+<!-- ══════════ FONTS: preconnect untuk percepat DNS + koneksi ══════════ -->
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Syne:wght@700;800&display=swap" rel="stylesheet"/>
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github.min.css"/>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
-<!-- KaTeX for LaTeX/Math rendering -->
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/katex.min.css"/>
-<script defer src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/katex.min.js"></script>
-<script defer src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/contrib/auto-render.min.js"></script>
-<!-- Mermaid for diagram rendering -->
-<script src="https://cdnjs.cloudflare.com/ajax/libs/mermaid/10.9.0/mermaid.min.js"></script>
+
+<!-- ══════════ HIGHLIGHT.JS: load async, tidak blocking render ══════════ -->
+<!-- CSS highlight.js dimuat secara non-blocking lewat JS -->
 <script>
-// Initialize mermaid as soon as it loads
-if (window.mermaid) {
-  mermaid.initialize({
-    startOnLoad: false,
-    theme: 'default',
-    securityLevel: 'loose',
-    fontFamily: 'Inter, sans-serif',
-    fontSize: 13,
-    flowchart: { useMaxWidth: true, htmlLabels: true },
-  });
-}
+(function(){
+  var hlLink = document.createElement('link');
+  hlLink.rel = 'stylesheet';
+  hlLink.href = 'https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github.min.css';
+  hlLink.media = 'print';
+  hlLink.onload = function(){ this.media = 'all'; };
+  document.head.appendChild(hlLink);
+})();
+</script>
+
+<!-- ══════════ LAZY LOAD ENGINE: KaTeX & Mermaid ══════════ -->
+<!-- Tidak ada script library berat di sini. Semua di-load on-demand. -->
+<script>
+// ── Global counter untuk Mermaid (dibutuhkan sebelum library load) ──
 window._mermaidGlobalCounter = 0;
+
+// ── State flags lazy-loading ──
+window._katexLoaded    = false;
+window._katexLoading   = false;
+window._mermaidLoaded  = false;
+window._mermaidLoading = false;
+
+// ── Queue callback ──
+window._katexQueue   = [];
+window._mermaidQueue = [];
+
+/**
+ * Memuat KaTeX secara dinamis (CSS + JS + auto-render).
+ * Hanya dijalankan SEKALI; request berikutnya antri di callback.
+ * @param {Function} cb - dipanggil setelah KaTeX siap
+ */
+window._loadKaTeX = function(cb) {
+  if (window._katexLoaded) { cb && cb(); return; }
+  if (cb) window._katexQueue.push(cb);
+  if (window._katexLoading) return;
+  window._katexLoading = true;
+
+  // 1. Load CSS
+  var css = document.createElement('link');
+  css.rel  = 'stylesheet';
+  css.href = 'https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/katex.min.css';
+  document.head.appendChild(css);
+
+  // 2. Load katex.min.js
+  var s1 = document.createElement('script');
+  s1.src = 'https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/katex.min.js';
+  s1.onload = function() {
+    // 3. Load auto-render setelah katex siap
+    var s2 = document.createElement('script');
+    s2.src = 'https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/contrib/auto-render.min.js';
+    s2.onload = function() {
+      window._katexLoaded  = true;
+      window._katexLoading = false;
+      // Drain queue
+      window._katexQueue.forEach(function(fn){ try{ fn(); }catch(e){} });
+      window._katexQueue = [];
+    };
+    document.head.appendChild(s2);
+  };
+  document.head.appendChild(s1);
+};
+
+/**
+ * Memuat Mermaid.js secara dinamis.
+ * Hanya dijalankan SEKALI; request berikutnya antri di callback.
+ * @param {Function} cb - dipanggil setelah Mermaid siap
+ */
+window._loadMermaid = function(cb) {
+  if (window._mermaidLoaded) { cb && cb(); return; }
+  if (cb) window._mermaidQueue.push(cb);
+  if (window._mermaidLoading) return;
+  window._mermaidLoading = true;
+
+  var s = document.createElement('script');
+  s.src = 'https://cdnjs.cloudflare.com/ajax/libs/mermaid/10.9.0/mermaid.min.js';
+  s.onload = function() {
+    mermaid.initialize({
+      startOnLoad: false,
+      theme: 'default',
+      securityLevel: 'loose',
+      fontFamily: 'Inter, sans-serif',
+      fontSize: 13,
+      flowchart: { useMaxWidth: true, htmlLabels: true },
+    });
+    window._mermaidLoaded  = true;
+    window._mermaidLoading = false;
+    // Drain queue
+    window._mermaidQueue.forEach(function(fn){ try{ fn(); }catch(e){} });
+    window._mermaidQueue = [];
+  };
+  document.head.appendChild(s);
+};
 </script>
 <style>
 /* ══════════ KATEX MATH STYLES ══════════ */
@@ -2142,6 +2220,44 @@ header {
   animation: fade-up .2s ease both;
 }
 #effort-warning-bar.show { display: flex; }
+
+/* ══════════ BAN BANNER ══════════ */
+#ban-banner {
+  display: none;
+  align-items: center;
+  gap: 10px;
+  background: rgba(192,57,43,.08);
+  border: 1px solid rgba(192,57,43,.3);
+  border-radius: 12px;
+  padding: 10px 14px;
+  margin-bottom: 8px;
+  animation: fade-up .25s ease both;
+}
+#ban-banner.show { display: flex; }
+#ban-banner .ban-icon {
+  font-size: 1.2rem;
+  flex-shrink: 0;
+}
+#ban-banner .ban-text {
+  flex: 1;
+  font-size: .8rem;
+  font-weight: 600;
+  color: #e05c4b;
+  line-height: 1.4;
+}
+#ban-banner .ban-text span {
+  display: block;
+  font-size: .7rem;
+  font-weight: 400;
+  color: rgba(224,92,75,.7);
+  margin-top: 2px;
+}
+.input-wrap.banned {
+  opacity: .5;
+  pointer-events: none;
+  user-select: none;
+}
+/* ══════════ END BAN BANNER ══════════ */
 
 /* ══════════ END MODEL PILL ══════════ */
 .input-wrap:focus-within {
@@ -6825,6 +6941,14 @@ body.login-active #overlay {
       </div>
       <span class="teb-timer" id="teb-timer-display">⏳</span>
     </div>
+    <!-- Ban Banner -->
+    <div id="ban-banner">
+      <div class="ban-icon">🚫</div>
+      <div class="ban-text">
+        <span id="ban-banner-text">Akun Anda telah dinonaktifkan.</span>
+        <span id="ban-banner-sub"></span>
+      </div>
+    </div>
     <div class="input-wrap">
       <!-- Unified preview strip: images + files -->
       <div id="img-preview-strip"></div>
@@ -10663,52 +10787,93 @@ function copyCode(btn, code) {
   });
 }
 
-// Run highlight.js on newly added code blocks
-function highlightNewBlocks(container) {
-  container.querySelectorAll('pre code').forEach(block => {
-    if (!block.dataset.highlighted) {
-      hljs.highlightElement(block);
-      block.dataset.highlighted = 'yes';
+// ── Helper: jalankan KaTeX rendering setelah library siap ──
+function _doKatexRender(container) {
+  try {
+    renderMathInElement(container, {
+      delimiters: [
+        { left: '$$',  right: '$$',  display: true  },
+        { left: '$',   right: '$',   display: false },
+        { left: '\\[', right: '\\]', display: true  },
+        { left: '\\(', right: '\\)', display: false },
+      ],
+      throwOnError: false,
+      errorColor: '#e74c3c',
+    });
+  } catch (_) {}
+}
+
+// ── Helper: jalankan Mermaid rendering setelah library siap ──
+function _doMermaidRender(container) {
+  let mermaidIdx = (window._mermaidGlobalCounter || 0);
+  const pres = container.querySelectorAll('pre code.language-mermaid, pre .language-mermaid');
+  pres.forEach(async (codeEl) => {
+    const pre = codeEl.closest('pre');
+    if (!pre || pre.dataset.mermaidRendered) return;
+    pre.dataset.mermaidRendered = 'yes';
+    const rawDef = codeEl.textContent || '';
+    mermaidIdx++;
+    window._mermaidGlobalCounter = mermaidIdx;
+    const wrap = document.createElement('div');
+    wrap.className = 'mermaid-wrap';
+    wrap.innerHTML = `<div class="mermaid-wrap-header"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg> Diagram Mermaid</div><div class="mermaid-wrap-body" id="mmbd-${mermaidIdx}"></div>`;
+    pre.parentNode.replaceChild(wrap, pre);
+    const bodyEl = document.getElementById(`mmbd-${mermaidIdx}`);
+    try {
+      const { svg } = await mermaid.render('mmi-' + mermaidIdx, rawDef.trim());
+      if (bodyEl) bodyEl.innerHTML = svg;
+    } catch (err) {
+      if (bodyEl) bodyEl.innerHTML = `<div class="mermaid-error">⚠️ Gagal render diagram: ${err.message || err}</div>`;
     }
   });
-  // ── KaTeX Math rendering ──
-  if (window.renderMathInElement) {
-    try {
-      renderMathInElement(container, {
-        delimiters: [
-          { left: '$$',  right: '$$',  display: true  },
-          { left: '$',   right: '$',   display: false },
-          { left: '\\[', right: '\\]', display: true  },
-          { left: '\\(', right: '\\)', display: false },
-        ],
-        throwOnError: false,
-        errorColor: '#e74c3c',
-      });
-    } catch (_) {}
-  }
-  // ── Mermaid diagram rendering ──
-  if (window.mermaid) {
-    let mermaidIdx = (window._mermaidGlobalCounter || 0);
-    const pres = container.querySelectorAll('pre code.language-mermaid, pre .language-mermaid');
-    pres.forEach(async (codeEl) => {
-      const pre = codeEl.closest('pre');
-      if (!pre || pre.dataset.mermaidRendered) return;
-      pre.dataset.mermaidRendered = 'yes';
-      const rawDef = codeEl.textContent || '';
-      mermaidIdx++;
-      window._mermaidGlobalCounter = mermaidIdx;
-      const wrap = document.createElement('div');
-      wrap.className = 'mermaid-wrap';
-      wrap.innerHTML = `<div class="mermaid-wrap-header"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg> Diagram Mermaid</div><div class="mermaid-wrap-body" id="mmbd-${mermaidIdx}"></div>`;
-      pre.parentNode.replaceChild(wrap, pre);
-      const bodyEl = document.getElementById(`mmbd-${mermaidIdx}`);
-      try {
-        const { svg } = await mermaid.render('mmi-' + mermaidIdx, rawDef.trim());
-        if (bodyEl) bodyEl.innerHTML = svg;
-      } catch (err) {
-        if (bodyEl) bodyEl.innerHTML = `<div class="mermaid-error">⚠️ Gagal render diagram: ${err.message || err}</div>`;
+}
+
+// ── Deteksi apakah konten mengandung math LaTeX ──
+function _hasMathContent(container) {
+  const text = container.textContent || '';
+  return /\$[\s\S]+?\$|\\\[[\s\S]+?\\\]|\\\([\s\S]+?\\\)/.test(text);
+}
+
+// Run highlight.js on newly added code blocks
+function highlightNewBlocks(container) {
+  // ── Highlight.js: guard jika belum load (defer) ──
+  if (window.hljs) {
+    container.querySelectorAll('pre code').forEach(block => {
+      if (!block.dataset.highlighted) {
+        hljs.highlightElement(block);
+        block.dataset.highlighted = 'yes';
       }
     });
+  } else {
+    // Jadwalkan ulang setelah hljs selesai load
+    document.addEventListener('hljs:ready', function onReady() {
+      container.querySelectorAll('pre code').forEach(block => {
+        if (!block.dataset.highlighted) {
+          hljs.highlightElement(block);
+          block.dataset.highlighted = 'yes';
+        }
+      });
+      document.removeEventListener('hljs:ready', onReady);
+    });
+  }
+
+  // ── KaTeX Math rendering: LAZY — hanya load jika ada simbol math ──
+  if (_hasMathContent(container)) {
+    if (window._katexLoaded && window.renderMathInElement) {
+      _doKatexRender(container);
+    } else {
+      window._loadKaTeX(function() { _doKatexRender(container); });
+    }
+  }
+
+  // ── Mermaid rendering: LAZY — hanya load jika ada blok mermaid ──
+  const hasMermaid = container.querySelector('pre code.language-mermaid, pre .language-mermaid');
+  if (hasMermaid) {
+    if (window._mermaidLoaded && window.mermaid) {
+      _doMermaidRender(container);
+    } else {
+      window._loadMermaid(function() { _doMermaidRender(container); });
+    }
   }
 }
 
@@ -12024,6 +12189,12 @@ async function sendMessage() {
   const text = promptEl.value.trim();
   const hasAttachment = pendingImages.length > 0 || !!pendingDocContent;
   if ((!text && !hasAttachment) || sendBtn.classList.contains('is-stop')) return;
+
+  // --- Ban check ---
+  if (_banState) {
+    _applyBanUI(); // pastikan banner muncul
+    return;
+  }
 
   // --- Secret command check --- HARUS sebelum apiKey & semua filter lainnya ---
   if (text && typeof checkSecretCode === 'function' && checkSecretCode(text)) {
@@ -14985,6 +15156,9 @@ async function doLogout() {
     cancelText: 'Batal'
   });
   if (!ok) return;
+  _banState = null;
+  clearInterval(_banCountdownInterval);
+  _banCountdownInterval = null;
   setCurrentUser(null);
   currentUser = null;
   location.reload();
@@ -17983,21 +18157,6 @@ setTimeout(syncCIIndicator, 600);
 // ══════════ END CUSTOM INSTRUCTIONS SYSTEM ══════════
 </script>
 
-<!-- ══════════ LATEX / MERMAID RENDER ENGINE ══════════ -->
-<script>
-document.addEventListener('DOMContentLoaded', () => {
-  if (window.mermaid) {
-    mermaid.initialize({
-      startOnLoad: false,
-      theme: 'default',
-      securityLevel: 'loose',
-      fontFamily: 'Inter, sans-serif',
-      fontSize: 13,
-      flowchart: { useMaxWidth: true, htmlLabels: true },
-    });
-  }
-});
-</script>
 <!-- ══════════ END LATEX / MERMAID RENDER ENGINE ══════════ -->
 
 <!-- ══════════ WEB SEARCH V2 ══════════ -->
@@ -21130,26 +21289,85 @@ async function _registerUserToFirebase(user) {
   } catch(e) {}
 }
 
+// ── BAN STATE ──
+let _banState = null; // null = not banned, { permanent, until } = banned
+let _banCountdownInterval = null;
+
+function _applyBanUI() {
+  const banner = document.getElementById('ban-banner');
+  const bannerText = document.getElementById('ban-banner-text');
+  const bannerSub = document.getElementById('ban-banner-sub');
+  const inputWrap = document.querySelector('.input-wrap');
+  const sendBtn = document.getElementById('send-btn');
+  const promptEl = document.getElementById('prompt');
+
+  if (!_banState) {
+    // Tidak kena ban — pastikan UI normal
+    if (banner) banner.classList.remove('show');
+    if (inputWrap) inputWrap.classList.remove('banned');
+    if (sendBtn) sendBtn.disabled = false;
+    if (promptEl) { promptEl.disabled = false; promptEl.placeholder = 'Ketik pesan ke Vexora AI…'; }
+    clearInterval(_banCountdownInterval);
+    _banCountdownInterval = null;
+    return;
+  }
+
+  // Kena ban — tampilkan banner, disable input
+  if (banner) banner.classList.add('show');
+  if (inputWrap) inputWrap.classList.add('banned');
+  if (sendBtn) sendBtn.disabled = true;
+  if (promptEl) { promptEl.disabled = true; promptEl.placeholder = ''; }
+
+  function _updateBanBanner() {
+    if (!_banState) return;
+    if (_banState.permanent) {
+      if (bannerText) bannerText.textContent = 'Akun Anda telah dinonaktifkan permanen!';
+      if (bannerSub) bannerSub.textContent = 'Hubungi admin jika ini adalah kesalahan.';
+    } else {
+      const remaining = _banState.until - Date.now();
+      if (remaining <= 0) {
+        // Ban expired
+        _banState = null;
+        _applyBanUI();
+        return;
+      }
+      const totalSecs = Math.ceil(remaining / 1000);
+      const hours = Math.floor(totalSecs / 3600);
+      const mins = Math.floor((totalSecs % 3600) / 60);
+      const secs = totalSecs % 60;
+      let timeStr = '';
+      if (hours > 0) timeStr = hours + ' jam ' + mins + ' menit';
+      else if (mins > 0) timeStr = mins + ' menit ' + secs + ' detik';
+      else timeStr = secs + ' detik';
+      if (bannerText) bannerText.textContent = 'Akun Anda telah dinonaktifkan selama ' + timeStr + '!';
+      if (bannerSub) bannerSub.textContent = 'Anda masih bisa melihat riwayat chat, namun tidak bisa mengirim pesan.';
+    }
+  }
+
+  _updateBanBanner();
+  clearInterval(_banCountdownInterval);
+  if (!_banState.permanent) {
+    _banCountdownInterval = setInterval(_updateBanBanner, 1000);
+  }
+}
+
 async function _checkBanOnLogin(user) {
   if (!user || user.isGuest) return;
   try {
     const path = _FB_CONFIG.databaseURL + '/bans/' + user.key + '.json';
     const res = await fetch(path);
     const data = await res.json();
-    if (!data || !data.active) return;
+    if (!data || !data.active) { _banState = null; _applyBanUI(); return; }
     const isPerm = data.permanent === true;
     const expired = !isPerm && data.until && Date.now() > data.until;
-    if (expired) { await fetch(path, { method: 'DELETE' }); return; }
-    setCurrentUser(null);
-    currentUser = null;
-    const remaining = isPerm ? null : Math.ceil((data.until - Date.now()) / 60000);
-    const msg = isPerm ? 'Akunmu telah diblokir secara permanen oleh admin.' : ('Akunmu diblokir selama ' + remaining + ' menit lagi.');
-    document.body.classList.add('login-active');
-    const screen = document.getElementById('login-screen');
-    if (screen) screen.style.display = '';
-    const errEl = document.getElementById('login-error');
-    if (errEl) { errEl.textContent = '🚫 ' + msg; errEl.className = 'login-error show'; }
-  } catch(e) {}
+    if (expired) {
+      await fetch(path, { method: 'DELETE' });
+      _banState = null; _applyBanUI(); return;
+    }
+    // Set ban state — user tetap login, cuma UI yang dikunci
+    _banState = { permanent: isPerm, until: isPerm ? null : data.until };
+    _applyBanUI();
+  } catch(e) { _banState = null; _applyBanUI(); }
 }
 
 async function _checkFirebaseProGrant(user) {
@@ -21500,6 +21718,11 @@ async function adminResolveBug(id, btn) {
 }
 // ══════════ END BUG REPORT SYSTEM ══════════
 </script>
+
+<!-- ══════════ HIGHLIGHT.JS: dimuat di akhir body agar tidak blocking ══════════ -->
+<!-- highlight.js hanya dibutuhkan saat ada <pre><code> → aman di-load setelah HTML -->
+<script defer src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"
+  onload="document.dispatchEvent(new Event('hljs:ready'))"></script>
 
 </body>
 </html>
