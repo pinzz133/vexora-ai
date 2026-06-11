@@ -1,0 +1,1393 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>VexoraPrompt — AI Prompt Generator</title>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg:        #0a0a0f;
+    --surface:   #111118;
+    --card:      #16161f;
+    --border:    #2a2a3a;
+    --border-hi: #3d3d55;
+    --text:      #e8e8f0;
+    --muted:     #6b6b88;
+    --img:       #7c6af5;
+    --img-glow:  #7c6af530;
+    --vid:       #f56a6a;
+    --vid-glow:  #f56a6a30;
+    --accent:    #a78bfa;
+    --green:     #4ade80;
+    --mono:      'Space Mono', monospace;
+    --sans:      'Space Grotesk', sans-serif;
+  }
+
+  html { scroll-behavior: smooth; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--sans);
+    min-height: 100vh;
+    line-height: 1.6;
+  }
+
+  /* ── HEADER ── */
+  header {
+    padding: 20px 32px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    position: sticky;
+    top: 0;
+    background: rgba(10,10,15,0.92);
+    backdrop-filter: blur(12px);
+    z-index: 100;
+  }
+
+  .logo {
+    font-family: var(--mono);
+    font-size: 15px;
+    color: var(--accent);
+    letter-spacing: 0.05em;
+  }
+  .logo span { color: var(--muted); }
+
+  .logo-group {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .token-pill {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 5px 10px;
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--accent);
+    transition: border-color 0.2s, transform 0.2s;
+  }
+  .token-pill.low {
+    color: var(--vid);
+    border-color: var(--vid-glow);
+  }
+  .token-pill.pulse {
+    animation: tokenPulse 0.4s ease;
+  }
+  @keyframes tokenPulse {
+    0% { transform: scale(1); }
+    40% { transform: scale(1.12); }
+    100% { transform: scale(1); }
+  }
+  .token-icon { font-size: 11px; }
+
+  .api-pill {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 6px 12px;
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--muted);
+    cursor: pointer;
+    transition: border-color 0.2s;
+  }
+  .api-pill:hover { border-color: var(--border-hi); }
+  .api-dot {
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    background: var(--border-hi);
+    transition: background 0.3s;
+  }
+  .api-dot.connected { background: var(--green); box-shadow: 0 0 6px var(--green); }
+
+  /* ── MAIN LAYOUT ── */
+  main {
+    max-width: 900px;
+    margin: 0 auto;
+    padding: 40px 24px 80px;
+  }
+
+  /* ── HERO ── */
+  .hero {
+    text-align: center;
+    padding: 48px 0 40px;
+  }
+  .hero-tag {
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--muted);
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    margin-bottom: 16px;
+  }
+  .hero h1 {
+    font-size: clamp(28px, 5vw, 48px);
+    font-weight: 700;
+    line-height: 1.15;
+    letter-spacing: -0.02em;
+    margin-bottom: 12px;
+  }
+  .hero h1 em { font-style: normal; color: var(--accent); }
+  .hero p {
+    color: var(--muted);
+    font-size: 15px;
+    max-width: 480px;
+    margin: 0 auto;
+  }
+
+  /* ── MODE TABS ── */
+  .mode-tabs {
+    display: flex;
+    gap: 4px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 4px;
+    margin: 32px 0 28px;
+    width: fit-content;
+    margin-left: auto;
+    margin-right: auto;
+  }
+  .tab-btn {
+    padding: 10px 28px;
+    border-radius: 8px;
+    border: none;
+    background: transparent;
+    color: var(--muted);
+    font-family: var(--sans);
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .tab-btn.active-img {
+    background: var(--img-glow);
+    color: var(--img);
+    border: 1px solid var(--img);
+  }
+  .tab-btn.active-vid {
+    background: var(--vid-glow);
+    color: var(--vid);
+    border: 1px solid var(--vid);
+  }
+  .tab-icon { font-size: 16px; }
+
+  /* ── FORM CARD ── */
+  .form-card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 28px;
+    margin-bottom: 20px;
+  }
+
+  .field-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+    margin-bottom: 16px;
+  }
+  .field-row.triple {
+    grid-template-columns: 1fr 1fr 1fr;
+  }
+  @media(max-width: 600px) {
+    .field-row, .field-row.triple { grid-template-columns: 1fr; }
+  }
+
+  .field {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+  .field.full { grid-column: 1 / -1; }
+
+  label {
+    font-size: 11px;
+    font-family: var(--mono);
+    color: var(--muted);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+
+  input[type="text"], textarea, select {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    color: var(--text);
+    font-family: var(--sans);
+    font-size: 14px;
+    padding: 10px 14px;
+    transition: border-color 0.2s;
+    outline: none;
+    width: 100%;
+  }
+  input[type="text"]:focus,
+  textarea:focus,
+  select:focus {
+    border-color: var(--accent);
+  }
+  textarea {
+    resize: vertical;
+    min-height: 90px;
+    line-height: 1.55;
+  }
+  select option { background: var(--surface); }
+
+  /* ── QUICK TAGS ── */
+  .quick-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-top: 8px;
+  }
+  .qtag {
+    font-size: 12px;
+    padding: 4px 10px;
+    border-radius: 20px;
+    border: 1px solid var(--border);
+    background: transparent;
+    color: var(--muted);
+    cursor: pointer;
+    font-family: var(--sans);
+    transition: all 0.15s;
+  }
+  .qtag:hover, .qtag.selected {
+    border-color: var(--accent);
+    color: var(--accent);
+    background: rgba(167,139,250,0.08);
+  }
+
+  /* ── GENERATE BUTTON ── */
+  .gen-btn {
+    width: 100%;
+    padding: 14px;
+    border-radius: 10px;
+    border: none;
+    font-family: var(--sans);
+    font-size: 15px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    margin-top: 8px;
+  }
+  .gen-btn.img-mode {
+    background: linear-gradient(135deg, #7c6af5, #a78bfa);
+    color: white;
+  }
+  .gen-btn.vid-mode {
+    background: linear-gradient(135deg, #f56a6a, #f8a4a4);
+    color: white;
+  }
+  .gen-btn:hover { opacity: 0.88; transform: translateY(-1px); }
+  .gen-btn:active { transform: translateY(0); }
+  .gen-btn:disabled { opacity: 0.4; cursor: not-allowed; transform: none; }
+  .gen-btn-cost {
+    font-family: var(--mono);
+    font-size: 12px;
+    font-weight: 400;
+    opacity: 0.85;
+  }
+
+  /* ── OUTPUT AREA ── */
+  .output-section { margin-top: 24px; }
+
+  .output-label {
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--muted);
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    margin-bottom: 10px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .output-label::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: var(--border);
+  }
+
+  .prompt-variants {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .prompt-box {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    overflow: hidden;
+    transition: border-color 0.2s;
+  }
+  .prompt-box:hover { border-color: var(--border-hi); }
+
+  .prompt-box-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 16px;
+    border-bottom: 1px solid var(--border);
+    background: rgba(255,255,255,0.02);
+  }
+  .variant-badge {
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--muted);
+    letter-spacing: 0.06em;
+  }
+
+  .copy-btn {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 5px 12px;
+    border-radius: 6px;
+    border: 1px solid var(--border);
+    background: transparent;
+    color: var(--muted);
+    font-size: 12px;
+    font-family: var(--sans);
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  .copy-btn:hover {
+    border-color: var(--green);
+    color: var(--green);
+  }
+  .copy-btn.copied {
+    border-color: var(--green);
+    color: var(--green);
+    background: rgba(74,222,128,0.08);
+  }
+
+  .prompt-text {
+    padding: 16px;
+    font-size: 13.5px;
+    line-height: 1.7;
+    color: var(--text);
+    white-space: pre-wrap;
+    word-break: break-word;
+  }
+
+  .prompt-tip {
+    padding: 8px 16px 14px;
+    font-size: 12px;
+    color: var(--muted);
+    font-style: italic;
+    border-top: 1px solid var(--border);
+  }
+
+  /* ── SKELETON ── */
+  .skeleton {
+    background: linear-gradient(90deg, var(--surface) 25%, var(--card) 50%, var(--surface) 75%);
+    background-size: 200% 100%;
+    animation: shimmer 1.4s infinite;
+    border-radius: 6px;
+    height: 16px;
+    margin-bottom: 8px;
+  }
+  @keyframes shimmer { 0%{background-position:200% 0} 100%{background-position:-200% 0} }
+
+  /* ── API KEY MODAL ── */
+  .modal-overlay {
+    display: none;
+    position: fixed; inset: 0;
+    background: rgba(0,0,0,0.7);
+    backdrop-filter: blur(4px);
+    z-index: 200;
+    align-items: center;
+    justify-content: center;
+  }
+  .modal-overlay.open { display: flex; }
+  .modal {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 32px;
+    width: min(480px, 90vw);
+  }
+  .modal h2 {
+    font-size: 18px;
+    font-weight: 600;
+    margin-bottom: 8px;
+  }
+  .modal p {
+    color: var(--muted);
+    font-size: 13px;
+    margin-bottom: 20px;
+  }
+  .modal p a { color: var(--accent); text-decoration: none; }
+  .modal-actions {
+    display: flex;
+    gap: 10px;
+    margin-top: 16px;
+  }
+  .btn-primary {
+    flex: 1;
+    padding: 10px;
+    background: var(--accent);
+    color: var(--bg);
+    border: none;
+    border-radius: 8px;
+    font-family: var(--sans);
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+  }
+  .btn-ghost {
+    padding: 10px 16px;
+    background: transparent;
+    color: var(--muted);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    font-family: var(--sans);
+    font-size: 14px;
+    cursor: pointer;
+  }
+
+  /* ── ERROR ── */
+  .error-box {
+    background: rgba(245,106,106,0.08);
+    border: 1px solid rgba(245,106,106,0.3);
+    border-radius: 10px;
+    padding: 14px 16px;
+    font-size: 13px;
+    color: var(--vid);
+    margin-top: 12px;
+    display: none;
+  }
+  .error-box.show { display: block; }
+
+  /* ── TOAST ── */
+  .toast {
+    position: fixed;
+    bottom: 24px;
+    right: 24px;
+    background: var(--card);
+    border: 1px solid var(--green);
+    color: var(--green);
+    padding: 10px 18px;
+    border-radius: 8px;
+    font-size: 13px;
+    font-family: var(--mono);
+    transform: translateY(80px);
+    opacity: 0;
+    transition: all 0.3s;
+    z-index: 300;
+    pointer-events: none;
+  }
+  .toast.show { transform: translateY(0); opacity: 1; }
+
+  /* ── DIVIDER SECTION ── */
+  .section-divider {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin: 8px 0 16px;
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--muted);
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+  }
+  .section-divider::before, .section-divider::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: var(--border);
+  }
+
+  /* ── VARIANT LABEL ── */
+  .variant-label-img { color: var(--img); }
+  .variant-label-vid { color: var(--vid); }
+
+  /* ── NARRATOR SECTION ── */
+  .narration-block {
+    border-top: 1px solid var(--border);
+    padding: 14px 16px;
+    background: rgba(245,106,106,0.04);
+  }
+  .narration-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 8px;
+  }
+  .narration-badge {
+    font-family: var(--mono);
+    font-size: 10px;
+    color: var(--vid);
+    background: rgba(245,106,106,0.12);
+    border: 1px solid rgba(245,106,106,0.25);
+    border-radius: 4px;
+    padding: 2px 8px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+  .narration-meta {
+    font-family: var(--mono);
+    font-size: 10px;
+    color: var(--muted);
+  }
+  .narration-text {
+    font-size: 13px;
+    line-height: 1.75;
+    color: var(--text);
+    opacity: 0.9;
+    font-style: italic;
+    white-space: pre-wrap;
+    word-break: break-word;
+  }
+  .narration-copy-row {
+    display: flex;
+    justify-content: flex-end;
+    margin-top: 8px;
+  }
+
+  /* ── NARRATOR FIELDS (video only) ── */
+  .narrator-panel {
+    display: none;
+  }
+  .narrator-panel.visible {
+    display: block;
+  }
+  .lang-narrator-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+    margin-top: 0;
+  }
+  @media(max-width:600px) {
+    .lang-narrator-row { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo-group">
+    <div class="logo">VEXORA<span>PROMPT</span></div>
+    <div class="token-pill" id="tokenPill" title="Sisa token generate">
+      <span class="token-icon">⚡</span>
+      <span id="tokenCount">150</span>
+    </div>
+  </div>
+  <button class="api-pill" onclick="openModal()">
+    <div class="api-dot" id="apiDot"></div>
+    <span id="apiStatus">Set Groq API Key</span>
+  </button>
+</header>
+
+<main>
+  <div class="hero">
+    <div class="hero-tag">AI Prompt Generator</div>
+    <h1>Prompts that work on<br><em>every AI tool</em></h1>
+    <p>Generate powerful, universal prompts for any image or video AI — Midjourney, Flux, Runway, Kling, Sora, and beyond.</p>
+  </div>
+
+  <!-- MODE TABS -->
+  <div class="mode-tabs">
+    <button class="tab-btn active-img" id="tabImg" onclick="setMode('image')">
+      <span class="tab-icon">🖼️</span> Image Prompt
+    </button>
+    <button class="tab-btn" id="tabVid" onclick="setMode('video')">
+      <span class="tab-icon">🎬</span> Video Prompt
+    </button>
+  </div>
+
+  <!-- FORM -->
+  <div class="form-card">
+    <!-- Subject -->
+    <div class="field">
+      <label>Subject / Main Idea</label>
+      <textarea id="subject" placeholder="e.g. a lone astronaut floating above a neon-lit alien city at dusk..." rows="3"></textarea>
+    </div>
+
+    <div class="section-divider" style="margin-top:20px">Style</div>
+
+    <!-- Style tags -->
+    <div class="field">
+      <label>Quick Style Tags</label>
+      <div class="quick-tags" id="styleTags">
+        <button class="qtag" onclick="toggleTag(this)">cinematic</button>
+        <button class="qtag" onclick="toggleTag(this)">photorealistic</button>
+        <button class="qtag" onclick="toggleTag(this)">anime</button>
+        <button class="qtag" onclick="toggleTag(this)">oil painting</button>
+        <button class="qtag" onclick="toggleTag(this)">watercolor</button>
+        <button class="qtag" onclick="toggleTag(this)">concept art</button>
+        <button class="qtag" onclick="toggleTag(this)">dark fantasy</button>
+        <button class="qtag" onclick="toggleTag(this)">cyberpunk</button>
+        <button class="qtag" onclick="toggleTag(this)">surrealism</button>
+        <button class="qtag" onclick="toggleTag(this)">minimalist</button>
+        <button class="qtag" onclick="toggleTag(this)">editorial</button>
+        <button class="qtag" onclick="toggleTag(this)">vintage film</button>
+        <button class="qtag" onclick="toggleTag(this)">3D render</button>
+        <button class="qtag" onclick="toggleTag(this)">illustration</button>
+        <button class="qtag" onclick="toggleTag(this)">macro photography</button>
+      </div>
+    </div>
+
+    <!-- IMAGE ONLY fields -->
+    <div id="imageFields">
+      <div class="section-divider">Composition</div>
+      <div class="field-row triple">
+        <div class="field">
+          <label>Aspect Ratio</label>
+          <select id="ratio">
+            <option value="">— select —</option>
+            <option>1:1 square</option>
+            <option>16:9 landscape</option>
+            <option>9:16 portrait</option>
+            <option>4:3</option>
+            <option>3:2</option>
+            <option>2:3</option>
+            <option>21:9 ultrawide</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>Shot Type</label>
+          <select id="shot">
+            <option value="">— select —</option>
+            <option>extreme close-up</option>
+            <option>close-up</option>
+            <option>medium shot</option>
+            <option>wide shot</option>
+            <option>full body</option>
+            <option>bird's eye</option>
+            <option>worm's eye</option>
+            <option>over the shoulder</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>Quality</label>
+          <select id="quality">
+            <option value="">— select —</option>
+            <option>8K ultra detail</option>
+            <option>hyper-realistic</option>
+            <option>award-winning photo</option>
+            <option>4K render</option>
+            <option>studio quality</option>
+            <option>RAW photo</option>
+          </select>
+        </div>
+      </div>
+      <div class="field-row" style="margin-top:0">
+        <div class="field">
+          <label>Depth of Field</label>
+          <select id="dof">
+            <option value="">— select —</option>
+            <option>shallow (f/1.4 bokeh)</option>
+            <option>medium (f/4)</option>
+            <option>deep (f/11 everything sharp)</option>
+            <option>tilt-shift effect</option>
+          </select>
+        </div>
+      </div>
+    </div>
+
+    <!-- VIDEO ONLY fields -->
+    <div id="videoFields" style="display:none">
+      <div class="section-divider">Motion</div>
+      <div class="field-row triple">
+        <div class="field">
+          <label>Camera Move <span id="camHint" style="color:var(--accent);font-size:10px;text-transform:none;letter-spacing:0;margin-left:4px;opacity:0.8"></span></label>
+          <select id="camera">
+            <option value="">— select —</option>
+            <option>slow push-in</option>
+            <option>pull back reveal</option>
+            <option>orbit / arc shot</option>
+            <option>handheld shaky</option>
+            <option>crane up</option>
+            <option>tracking shot</option>
+            <option>static locked</option>
+            <option>drone aerial</option>
+            <option>dolly zoom</option>
+            <option>FPV / first-person view</option>
+            <option>POV bodycam</option>
+            <option>GoPro style</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>Duration</label>
+          <select id="duration">
+            <option value="">— select —</option>
+            <option>3–5 sec</option>
+            <option>5–10 sec</option>
+            <option>10–15 sec</option>
+            <option>15–30 sec</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>Motion Speed</label>
+          <select id="motionSpeed">
+            <option value="">— select —</option>
+            <option>very slow / dreamy</option>
+            <option>slow</option>
+            <option>normal</option>
+            <option>fast</option>
+            <option>ultra fast / whip</option>
+          </select>
+        </div>
+      </div>
+      <div class="field-row" style="margin-top:0">
+        <div class="field">
+          <label>Subject Action</label>
+          <select id="subjectAction">
+            <option value="">— select —</option>
+            <option>walking slowly</option>
+            <option>running</option>
+            <option>floating / levitating</option>
+            <option>turning to look at camera</option>
+            <option>dancing</option>
+            <option>standing still</option>
+            <option>exploding / transforming</option>
+            <option>falling</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>Visual FX <span id="fxHint" style="color:var(--accent);font-size:10px;text-transform:none;letter-spacing:0;margin-left:4px;opacity:0.8"></span></label>
+          <select id="visualFx">
+            <option value="">— select —</option>
+            <option>particle effects</option>
+            <option>light rays / god rays</option>
+            <option>slow motion</option>
+            <option>time lapse</option>
+            <option>lens flares</option>
+            <option>motion blur</option>
+            <option>depth of field rack focus</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- NARRATOR & LANGUAGE -->
+      <div class="section-divider" style="margin-top:16px">Narration</div>
+      <div class="lang-narrator-row">
+        <div class="field">
+          <label>Narration Language</label>
+          <select id="narrationLang">
+            <option value="english">🇬🇧 English</option>
+            <option value="indonesian">🇮🇩 Indonesia</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>Narrator Style</label>
+          <select id="narratorStyle">
+            <option value="">— select —</option>
+            <option value="documentary">🎙️ Documentary — calm & authoritative</option>
+            <option value="epic">⚡ Epic — bold & dramatic</option>
+            <option value="cinematic">🎬 Cinematic — poetic & immersive</option>
+            <option value="commercial">📣 Commercial — energetic & persuasive</option>
+            <option value="storyteller">📖 Storyteller — warm & personal</option>
+            <option value="mysterious">🌑 Mysterious — low-key & intriguing</option>
+            <option value="educational">🧠 Educational — clear & informative</option>
+            <option value="motivational">🔥 Motivational — uplifting & powerful</option>
+          </select>
+        </div>
+      </div>
+    </div>
+
+    <!-- Extra notes -->
+    <div class="field" style="margin-top:16px">
+      <label>Extra Details (optional)</label>
+      <input type="text" id="extra" placeholder="e.g. no text, no watermark, shallow depth of field, specific colors...">
+    </div>
+
+    <button class="gen-btn img-mode" id="genBtn" onclick="generatePrompts()">
+      <span id="genBtnIcon">✦</span>
+      <span id="genBtnText">Generate Prompts</span>
+      <span id="genBtnCost" class="gen-btn-cost"></span>
+    </button>
+  </div>
+
+  <!-- ERROR -->
+  <div class="error-box" id="errorBox"></div>
+
+  <!-- OUTPUT -->
+  <div class="output-section" id="outputSection" style="display:none">
+    <div class="output-label">Generated Prompts</div>
+    <div class="prompt-variants" id="promptVariants"></div>
+  </div>
+</main>
+
+<!-- API MODAL -->
+<div class="modal-overlay" id="modalOverlay" onclick="closeModalOutside(event)">
+  <div class="modal">
+    <h2>🔑 Groq API Key</h2>
+    <p>
+      Get your free API key at <a href="https://console.groq.com" target="_blank">console.groq.com</a><br>
+      Key is stored locally in your browser only.
+    </p>
+    <div class="field">
+      <label>API Key</label>
+      <input type="text" id="apiKeyInput" placeholder="gsk_..." style="font-family: monospace; font-size:13px">
+    </div>
+    <div class="modal-actions">
+      <button class="btn-ghost" onclick="closeModal()">Cancel</button>
+      <button class="btn-primary" onclick="saveApiKey()">Save Key</button>
+    </div>
+  </div>
+</div>
+
+<!-- TOAST -->
+<div class="toast" id="toast">✓ Copied to clipboard</div>
+
+<script>
+  let currentMode = 'image';
+  let selectedStyleTags = new Set();
+
+  // ── MODE ──
+  function setMode(mode) {
+    currentMode = mode;
+    const imgBtn = document.getElementById('tabImg');
+    const vidBtn = document.getElementById('tabVid');
+    const genBtn = document.getElementById('genBtn');
+    const imgFields = document.getElementById('imageFields');
+    const vidFields = document.getElementById('videoFields');
+
+    if (mode === 'image') {
+      imgBtn.className = 'tab-btn active-img';
+      vidBtn.className = 'tab-btn';
+      genBtn.className = 'gen-btn img-mode';
+      imgFields.style.display = '';
+      vidFields.style.display = 'none';
+    } else {
+      vidBtn.className = 'tab-btn active-vid';
+      imgBtn.className = 'tab-btn';
+      genBtn.className = 'gen-btn vid-mode';
+      imgFields.style.display = 'none';
+      vidFields.style.display = '';
+    }
+    updateGenButtonCost();
+  }
+
+  // ── DYNAMIC VISUAL FX ──
+  const fxRules = [
+    { keywords: ['fire','flame','explosion','blast','volcano','lava','burning'],    fx: 'particle effects',          hint: '🔥 fire detected' },
+    { keywords: ['forest','nature','rain','cloud','fog','mist','sunrise','sunset'], fx: 'light rays / god rays',     hint: '🌿 nature scene' },
+    { keywords: ['space','galaxy','star','nebula','cosmic','universe','planet'],    fx: 'particle effects',          hint: '🌌 space scene' },
+    { keywords: ['portrait','face','person','woman','man','model','character'],     fx: 'depth of field rack focus', hint: '👤 portrait detected' },
+    { keywords: ['city','street','urban','neon','traffic','crowd','building'],      fx: 'lens flares',               hint: '🏙️ urban scene' },
+    { keywords: ['water','ocean','wave','river','underwater','sea','lake'],         fx: 'slow motion',               hint: '🌊 water scene' },
+    { keywords: ['action','fight','battle','sport','run','race','chase'],           fx: 'motion blur',               hint: '⚡ action scene' },
+    { keywords: ['timelapse','time lapse','sky','cloud','day to night','sunset'],   fx: 'time lapse',                hint: '⏩ sky / time scene' },
+  ];
+
+  // ── DYNAMIC CAMERA MOVE ──
+  const camRules = [
+    { keywords: ['fpv','first person','first-person','pov','bodycam','body cam','gopro'], cam: 'FPV / first-person view', hint: '🎮 FPV / POV' },
+    { keywords: ['portrait','face','person','woman','man','model','character'],     cam: 'slow push-in',      hint: '👤 portrait' },
+    { keywords: ['landscape','mountain','city','skyline','wide','aerial','drone'],  cam: 'drone aerial',      hint: '🌄 wide scene' },
+    { keywords: ['space','galaxy','planet','nebula','cosmic','universe'],           cam: 'slow push-in',      hint: '🌌 space scene' },
+    { keywords: ['action','fight','chase','battle','race','run','sport'],           cam: 'tracking shot',     hint: '⚡ action scene' },
+    { keywords: ['ocean','wave','sea','water','river','waterfall'],                 cam: 'crane up',          hint: '🌊 water scene' },
+    { keywords: ['forest','jungle','nature','tree','path','trail'],                 cam: 'tracking shot',     hint: '🌿 nature scene' },
+    { keywords: ['building','architecture','tower','skyscraper','ruin','castle'],   cam: 'crane up',          hint: '🏛️ architecture' },
+    { keywords: ['secret','mystery','dark','shadow','horror','ghost','eerie'],      cam: 'handheld shaky',    hint: '👁️ suspense scene' },
+    { keywords: ['reveal','transform','emerge','appear','unfold'],                  cam: 'pull back reveal',  hint: '✨ reveal scene' },
+    { keywords: ['product','object','item','detail','close','macro'],               cam: 'orbit / arc shot',  hint: '🔍 product / object' },
+  ];
+
+  function updateVisualFxSuggestion() {
+    if (currentMode !== 'video') return;
+    const subjectVal = (document.getElementById('subject').value || '').toLowerCase();
+    const fxSelect = document.getElementById('visualFx');
+    const fxHint = document.getElementById('fxHint');
+    if (!subjectVal.trim()) { fxHint.textContent = ''; return; }
+    for (const rule of fxRules) {
+      if (rule.keywords.some(k => subjectVal.includes(k))) {
+        if (!fxSelect.value) fxSelect.value = rule.fx;
+        fxHint.textContent = rule.hint;
+        return;
+      }
+    }
+    fxHint.textContent = '';
+  }
+
+  function updateCameraMoveSuggestion() {
+    if (currentMode !== 'video') return;
+    const subjectVal = (document.getElementById('subject').value || '').toLowerCase();
+    const camSelect = document.getElementById('camera');
+    const camHint = document.getElementById('camHint');
+    if (!subjectVal.trim()) { camHint.textContent = ''; return; }
+    for (const rule of camRules) {
+      if (rule.keywords.some(k => subjectVal.includes(k))) {
+        if (!camSelect.value) camSelect.value = rule.cam;
+        camHint.textContent = rule.hint;
+        return;
+      }
+    }
+    camHint.textContent = '';
+  }
+
+  document.getElementById('subject').addEventListener('input', () => {
+    updateVisualFxSuggestion();
+    updateCameraMoveSuggestion();
+  });
+
+  // ── TAGS ──
+  function toggleTag(btn) {
+    btn.classList.toggle('selected');
+    const tag = btn.textContent;
+    if (selectedStyleTags.has(tag)) selectedStyleTags.delete(tag);
+    else selectedStyleTags.add(tag);
+    updateGenButtonCost();
+  }
+
+  // ── TOKEN SYSTEM ──
+  const TOKEN_KEY = 'vexora_tokens';
+  const STARTING_TOKENS = 150;
+  const MIN_COST = 8;
+  const MAX_COST = 30;
+
+  function getTokens() {
+    let t = localStorage.getItem(TOKEN_KEY);
+    if (t === null) {
+      t = STARTING_TOKENS;
+      localStorage.setItem(TOKEN_KEY, t);
+    }
+    return parseInt(t, 10);
+  }
+
+  function setTokens(val) {
+    val = Math.max(0, val);
+    localStorage.setItem(TOKEN_KEY, val);
+    renderTokens(val);
+  }
+
+  function renderTokens(val, animate) {
+    const pill = document.getElementById('tokenPill');
+    const count = document.getElementById('tokenCount');
+    count.textContent = val;
+    pill.classList.toggle('low', val <= 20);
+    if (animate) {
+      pill.classList.remove('pulse');
+      void pill.offsetWidth;
+      pill.classList.add('pulse');
+    }
+  }
+
+  // Estimate token cost based on inputs: subject length, style tags,
+  // mode-specific fields and extra details. Scales between MIN_COST and MAX_COST.
+  function estimateCost() {
+    const subject = document.getElementById('subject').value.trim();
+    const extra = document.getElementById('extra').value.trim();
+    const styleCount = selectedStyleTags.size;
+
+    let filledFields = 0;
+    if (currentMode === 'image') {
+      ['ratio','shot','quality','dof'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el && el.value) filledFields++;
+      });
+    } else {
+      ['camera','duration','motionSpeed','subjectAction','visualFx'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el && el.value) filledFields++;
+      });
+    }
+
+    const subjectWords = subject ? subject.split(/\s+/).filter(Boolean).length : 0;
+    const extraWords = extra ? extra.split(/\s+/).filter(Boolean).length : 0;
+
+    // Base cost grows with how much context the model has to work with
+    let cost = MIN_COST
+      + Math.min(subjectWords, 20) * 0.5
+      + extraWords * 0.4
+      + styleCount * 1.2
+      + filledFields * 1.5
+      + (currentMode === 'video' ? 5 : 0);
+
+    // narrator adds a little more
+    if (currentMode === 'video') {
+      const narratorEl = document.getElementById('narratorStyle');
+      if (narratorEl && narratorEl.value) cost += 2;
+    }
+
+    cost = Math.round(cost);
+    return Math.max(MIN_COST, Math.min(MAX_COST, cost));
+  }
+
+  function updateGenButtonCost() {
+    const cost = estimateCost();
+    const costEl = document.getElementById('genBtnCost');
+    if (costEl) costEl.textContent = `-(${cost})`;
+  }
+
+
+  function openModal() {
+    const stored = localStorage.getItem('groq_key');
+    if (stored) document.getElementById('apiKeyInput').value = stored;
+    document.getElementById('modalOverlay').classList.add('open');
+  }
+  function closeModal() {
+    document.getElementById('modalOverlay').classList.remove('open');
+  }
+  function closeModalOutside(e) {
+    if (e.target === document.getElementById('modalOverlay')) closeModal();
+  }
+  function saveApiKey() {
+    const key = document.getElementById('apiKeyInput').value.trim();
+    if (!key) return;
+    localStorage.setItem('groq_key', key);
+    updateApiStatus(true);
+    closeModal();
+    showToast('✓ API key saved');
+  }
+  function updateApiStatus(connected) {
+    document.getElementById('apiDot').className = connected ? 'api-dot connected' : 'api-dot';
+    document.getElementById('apiStatus').textContent = connected ? 'Groq Connected' : 'Set Groq API Key';
+  }
+  window.addEventListener('load', () => {
+    if (localStorage.getItem('groq_key')) updateApiStatus(true);
+    renderTokens(getTokens());
+    updateGenButtonCost();
+    const subjectEl = document.getElementById('subject');
+    const extraEl = document.getElementById('extra');
+    if (subjectEl) subjectEl.addEventListener('input', updateGenButtonCost);
+    if (extraEl) extraEl.addEventListener('input', updateGenButtonCost);
+    document.querySelectorAll('#imageFields select, #videoFields select').forEach(el => {
+      el.addEventListener('change', updateGenButtonCost);
+    });
+  });
+
+  // ── GENERATE ──
+  async function generatePrompts() {
+    const apiKey = localStorage.getItem('groq_key');
+    if (!apiKey) { openModal(); return; }
+
+    const subject = document.getElementById('subject').value.trim();
+    if (!subject) {
+      showError('Please enter a subject or idea first.');
+      return;
+    }
+
+    const cost = estimateCost();
+    const tokens = getTokens();
+    if (tokens < cost) {
+      showError(`Token tidak cukup. Butuh ${cost}, sisa ${tokens}.`);
+      return;
+    }
+
+    hideError();
+    setLoading(true);
+
+    const styleTags = [...selectedStyleTags].join(', ');
+    const extra = document.getElementById('extra').value.trim();
+
+    let systemPrompt, userPrompt, maxTokens, temperature;
+
+    if (currentMode === 'image') {
+      // ── IMAGE MODE ──
+      const ratio = document.getElementById('ratio').value;
+      const shot = document.getElementById('shot').value;
+      const quality = document.getElementById('quality').value;
+      const dof = document.getElementById('dof').value;
+      const modeSpecific = [
+        ratio && `Aspect ratio: ${ratio}`,
+        shot && `Shot type: ${shot}`,
+        quality && `Quality: ${quality}`,
+        dof && `Depth of field: ${dof}`,
+      ].filter(Boolean).join('. ');
+
+      maxTokens = 2400;
+      temperature = 0.85;
+
+      systemPrompt = `You are an elite AI image prompt engineer with deep expertise in visual composition, color theory, lighting design, and artistic direction. Your task is to generate 3 highly optimized image generation prompts that work universally across ALL major AI image platforms: Midjourney, DALL-E 3, Flux, Stable Diffusion, Adobe Firefly, and Ideogram.
+
+Each variant must have a genuinely different creative angle — not just synonyms, but a fundamentally different artistic vision. Prompts should be vivid, richly descriptive, and technically precise. Weave in lighting conditions, color palette, texture, atmosphere, composition rule references, and material descriptions naturally. Return ONLY valid JSON, no markdown, no explanation.`;
+
+      userPrompt = `Generate 3 distinct universal image prompt variants for the following brief:
+
+Subject: ${subject}
+Style: ${styleTags || 'open — let the variant define it'}
+${modeSpecific ? 'Technical specs: ' + modeSpecific + '\n' : ''}${extra ? 'Extra notes: ' + extra + '\n' : ''}
+
+Each variant must approach the subject with a different creative lens (e.g. Cinematic Realism vs Abstract Painterly vs High-Fashion Editorial). Make every prompt dense with sensory and visual detail — colors, textures, light quality, atmosphere, lens characteristics, mood, era or aesthetic references where relevant.
+
+Return JSON with this exact structure:
+{
+  "prompts": [
+    {
+      "variant": "Short label (2–3 words max, e.g. 'Cinematic Realism')",
+      "prompt": "The full optimized prompt — minimum 60 words, richly descriptive, all technical descriptors woven in naturally. Include lighting quality, color palette or dominant hues, texture and material details, atmospheric mood, compositional framing, and any relevant camera/lens details.",
+      "tip": "One short actionable tip specific to getting the best result with this prompt on any AI tool."
+    }
+  ]
+}
+
+Generate exactly 3 variants. Every prompt must be substantively different in creative direction, not just tone.`;
+
+    } else {
+      // ── VIDEO MODE ──
+      const camera = document.getElementById('camera').value;
+      const duration = document.getElementById('duration').value;
+      const speed = document.getElementById('motionSpeed').value;
+      const action = document.getElementById('subjectAction').value;
+      const fx = document.getElementById('visualFx').value;
+      const narratorStyle = document.getElementById('narratorStyle').value;
+      const narrationLang = document.getElementById('narrationLang').value;
+
+      const modeSpecific = [
+        camera && `Camera movement: ${camera}`,
+        duration && `Duration: ${duration}`,
+        speed && `Motion speed: ${speed}`,
+        action && `Subject action: ${action}`,
+        fx && `Visual FX: ${fx}`,
+      ].filter(Boolean).join('. ');
+
+      const narratorInfo = narratorStyle
+        ? `Narrator style: ${narratorStyle}`
+        : 'Narrator style: cinematic (default)';
+      const langInfo = narrationLang === 'indonesian'
+        ? 'Write the narration in Bahasa Indonesia.'
+        : 'Write the narration in English.';
+
+      maxTokens = 4200;
+      temperature = 0.88;
+
+      // Map duration selection to narration sentence count and word budget
+      const durationNarrationMap = {
+        '3–5 sec':   { sentences: '1 to 2', words: 'around 20–35',  pacing: 'very brief and punchy' },
+        '5–10 sec':  { sentences: '2 to 3', words: 'around 35–55',  pacing: 'concise but evocative' },
+        '10–15 sec': { sentences: '3 to 4', words: 'around 55–80',  pacing: 'measured and cinematic' },
+        '15–30 sec': { sentences: '4 to 6', words: 'around 80–130', pacing: 'full and immersive' },
+      };
+      const durationKey = duration || '';
+      const narrationGuide = durationNarrationMap[durationKey] || { sentences: '3 to 5', words: 'around 50–90', pacing: 'cinematic' };
+      const narrationLengthInstruction = duration
+        ? `The video is ${duration} long. The narration MUST be exactly ${narrationGuide.sentences} sentence(s) — approximately ${narrationGuide.words} words — with ${narrationGuide.pacing} delivery pacing that fits the duration.`
+        : `Write a narration of 3 to 5 sentences with cinematic pacing.`;
+
+      systemPrompt = `You are a world-class AI video prompt engineer and screenwriter with deep expertise in cinematic direction, motion design, temporal storytelling, and video AI tools (Runway Gen-4, Kling, Sora, Pika, Luma Dream Machine, Veo 2). You also write professional-grade video narrations for voice-over artists.
+
+Your job is to generate 3 highly detailed, cinematic video generation prompts — each with a unique directorial approach — plus a professionally written narration script with narrator persona for each variant.
+
+Video prompts must describe the full temporal arc of the scene: how it begins, how it moves through time, how it ends. Include camera choreography with specific motion language (e.g. "camera begins at ground level, pushes forward, then cranes upward"), environmental atmosphere with time-of-day and weather detail, subject behavior and micro-expressions, sound design cues, color grade direction, and transition style. Every prompt should be dense enough to direct a real cinematographer.
+
+CRITICAL: Narration length must strictly match the video duration. A 3–5 second video needs only 1–2 short punchy sentences. A 15–30 second video can have 4–6 full sentences. Never write more narration than can be comfortably spoken during the video.
+
+Return ONLY valid JSON, no markdown, no explanation.`;
+
+      userPrompt = `Generate 3 distinct, cinematic video prompt variants for the following brief:
+
+Subject: ${subject}
+Style: ${styleTags || 'open — let the variant define it'}
+${modeSpecific ? 'Motion specs: ' + modeSpecific + '\n' : ''}${extra ? 'Extra notes: ' + extra + '\n' : ''}
+${narratorInfo}
+${langInfo}
+
+Each variant must take a fundamentally different directorial approach (e.g. Slow Cinematic Documentary vs High-Energy Commercial vs Surreal Art Film). 
+
+For each variant provide:
+1. A rich, detailed video generation prompt (minimum 100 words) describing the full scene arc: opening frame → motion choreography → climax moment → closing frame. Include: camera movement language, lighting and color grade, subject action with micro-detail, atmospheric/environmental description, sound design suggestions, VFX/transition style, emotional tone arc.
+
+2. A narrator persona description (name, voice quality, tone — 1 sentence).
+
+3. NARRATION LENGTH RULE: ${narrationLengthInstruction}
+   The narration should complement the visual story, not describe it literally. It should evoke emotion, provide context, or deepen the meaning of the scene. Written in the specified language and narrator style.
+
+Return JSON with this exact structure:
+{
+  "prompts": [
+    {
+      "variant": "Short label (2–3 words, e.g. 'Epic Documentary')",
+      "prompt": "The full cinematic video generation prompt — minimum 100 words, covering full scene arc, camera choreography, lighting, color grade, subject motion, atmosphere, sound design cues, VFX notes.",
+      "tip": "One short actionable tip for getting the best result with this prompt on Runway, Kling, or Sora.",
+      "narrator": "Narrator persona — name + voice/tone description in 1 sentence.",
+      "narration": "The narration script in the specified language — length MUST match the duration rule above.",
+      "narration_language": "${narrationLang}"
+    }
+  ]
+}
+
+Generate exactly 3 variants. Each prompt must be a genuinely different directorial vision. Narrations must strictly follow the duration-based length rule and match the narrator style and language.`;
+    }
+
+    try {
+      const res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${apiKey}`
+        },
+        body: JSON.stringify({
+          model: 'llama-3.3-70b-versatile',
+          messages: [
+            { role: 'system', content: systemPrompt },
+            { role: 'user', content: userPrompt }
+          ],
+          max_tokens: maxTokens,
+          temperature: temperature
+        })
+      });
+
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.error?.message || `HTTP ${res.status}`);
+      }
+
+      const data = await res.json();
+      let raw = data.choices[0].message.content.trim();
+      raw = raw.replace(/```json|```/g, '').trim();
+      const parsed = JSON.parse(raw);
+      renderPrompts(parsed.prompts);
+      const newBalance = getTokens() - cost;
+      setTokens(newBalance);
+      renderTokens(getTokens(), true);
+    } catch (err) {
+      showError(`Error: ${err.message}. Check your API key and try again.`);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  // ── RENDER ──
+  function renderPrompts(prompts) {
+    const section = document.getElementById('outputSection');
+    const container = document.getElementById('promptVariants');
+    container.innerHTML = '';
+
+    const labelClass = currentMode === 'image' ? 'variant-label-img' : 'variant-label-vid';
+    const isVideo = currentMode === 'video';
+
+    prompts.forEach((p, i) => {
+      const box = document.createElement('div');
+      box.className = 'prompt-box';
+      box.style.animationDelay = `${i * 0.06}s`;
+      const safePrompt = JSON.stringify(p.prompt);
+      const safeNarration = p.narration ? JSON.stringify(p.narration) : null;
+
+      const langFlag = p.narration_language === 'indonesian' ? '🇮🇩 Bahasa Indonesia' : '🇬🇧 English';
+
+      const durVal = isVideo ? document.getElementById('duration').value : '';
+      const durLabel = durVal ? ` · ${durVal}` : '';
+      const narrationHTML = isVideo && p.narration ? `
+        <div class="narration-block">
+          <div class="narration-header">
+            <span class="narration-badge">🎙️ Narration${durLabel}</span>
+            <span class="narration-meta">${langFlag}</span>
+          </div>
+          ${p.narrator ? `<div style="font-size:11px;font-family:var(--mono);color:var(--muted);margin-bottom:8px;opacity:0.8;">Narrator — ${escapeHtml(p.narrator)}</div>` : ''}
+          <div class="narration-text">${escapeHtml(p.narration)}</div>
+          <div class="narration-copy-row">
+            <button class="copy-btn" onclick="copyPrompt(this, ${safeNarration})">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+              </svg>
+              Copy Narration
+            </button>
+          </div>
+        </div>
+      ` : '';
+
+      box.innerHTML = `
+        <div class="prompt-box-header">
+          <span class="variant-badge ${labelClass}">${p.variant || `Variant ${i + 1}`}</span>
+          <button class="copy-btn" onclick="copyPrompt(this, ${safePrompt})">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+              <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+            </svg>
+            Copy Prompt
+          </button>
+        </div>
+        <div class="prompt-text">${escapeHtml(p.prompt)}</div>
+        ${p.tip ? `<div class="prompt-tip">💡 ${escapeHtml(p.tip)}</div>` : ''}
+        ${narrationHTML}
+      `;
+      container.appendChild(box);
+    });
+
+    section.style.display = '';
+    section.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+
+  function escapeHtml(str) {
+    return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  }
+
+  // ── COPY ──
+  async function copyPrompt(btn, text) {
+    try {
+      await navigator.clipboard.writeText(text);
+      btn.classList.add('copied');
+      btn.innerHTML = `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"></polyline></svg> Copied!`;
+      showToast('✓ Copied to clipboard');
+      setTimeout(() => {
+        btn.classList.remove('copied');
+        btn.innerHTML = `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg> Copy`;
+      }, 2000);
+    } catch {
+      showToast('Select text manually');
+    }
+  }
+
+  // ── UI HELPERS ──
+  function setLoading(on) {
+    const btn = document.getElementById('genBtn');
+    const icon = document.getElementById('genBtnIcon');
+    const text = document.getElementById('genBtnText');
+    btn.disabled = on;
+    if (on) {
+      icon.textContent = '⏳';
+      text.textContent = 'Generating...';
+      showSkeletons();
+    } else {
+      icon.textContent = '✦';
+      text.textContent = 'Generate Prompts';
+    }
+  }
+
+  function showSkeletons() {
+    const section = document.getElementById('outputSection');
+    const container = document.getElementById('promptVariants');
+    container.innerHTML = `
+      <div class="prompt-box"><div style="padding:16px"><div class="skeleton" style="width:30%;margin-bottom:12px"></div><div class="skeleton"></div><div class="skeleton" style="width:85%"></div><div class="skeleton" style="width:70%"></div></div></div>
+      <div class="prompt-box"><div style="padding:16px"><div class="skeleton" style="width:25%;margin-bottom:12px"></div><div class="skeleton"></div><div class="skeleton" style="width:90%"></div><div class="skeleton" style="width:60%"></div></div></div>
+      <div class="prompt-box"><div style="padding:16px"><div class="skeleton" style="width:28%;margin-bottom:12px"></div><div class="skeleton"></div><div class="skeleton" style="width:80%"></div><div class="skeleton" style="width:65%"></div></div></div>
+    `;
+    section.style.display = '';
+  }
+
+  function showError(msg) {
+    const box = document.getElementById('errorBox');
+    box.textContent = msg;
+    box.classList.add('show');
+  }
+  function hideError() {
+    document.getElementById('errorBox').classList.remove('show');
+  }
+
+  function showToast(msg) {
+    const t = document.getElementById('toast');
+    t.textContent = msg;
+    t.classList.add('show');
+    setTimeout(() => t.classList.remove('show'), 2200);
+  }
+</script>
+</body>
+</html>
