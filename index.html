@@ -1275,12 +1275,9 @@
   </div>
 </div>
 
-<!-- MAINTENANCE OVERLAY -->
-<div class="modal-overlay" id="maintenanceOverlay" style="display:none;z-index:99999;">
-  <div class="modal" style="text-align:center;">
-    <h2>🚧 Sedang Maintenance</h2>
-    <p id="maintenanceOverlayMsg">Situs sedang dalam perbaikan. Silakan kembali lagi nanti.</p>
-  </div>
+<!-- MAINTENANCE BANNER -->
+<div id="maintenanceOverlay" style="display:none;position:sticky;top:0;z-index:150;background:#f56a6a;color:#1a0505;padding:10px 16px;text-align:center;font-size:13px;font-weight:600;">
+  <span id="maintenanceOverlayMsg"></span>
 </div>
 
 
@@ -2173,10 +2170,14 @@ Generate exactly 3 variants. Each prompt must be a genuinely different directori
   }
 
   async function toggleMaintenance() {
+    const msgEl = document.getElementById('maintenanceMessage');
     try {
       const snap = await MAINTENANCE_DOC().get();
       const current = snap.exists ? !!snap.data().enabled : false;
-      await MAINTENANCE_DOC().set({ enabled: !current }, { merge: true });
+      await MAINTENANCE_DOC().set({
+        enabled: !current,
+        message: msgEl.value.trim() || 'Situs sedang dalam perbaikan. Silakan kembali lagi nanti.'
+      }, { merge: true });
       loadMaintenanceStatus();
       showToast(!current ? '✓ Maintenance diaktifkan' : '✓ Maintenance dimatikan');
     } catch (err) {
@@ -2205,12 +2206,10 @@ Generate exactly 3 variants. Each prompt must be a genuinely different directori
       maintenanceMsgText = data.message || 'Situs sedang dalam perbaikan. Silakan kembali lagi nanti.';
       const overlay = document.getElementById('maintenanceOverlay');
       if (maintenanceActive) {
-        document.getElementById('maintenanceOverlayMsg').textContent = maintenanceMsgText;
-        overlay.style.display = 'flex';
-        overlay.classList.add('open');
+        document.getElementById('maintenanceOverlayMsg').textContent = '🚧 ' + maintenanceMsgText;
+        overlay.style.display = 'block';
       } else {
         overlay.style.display = 'none';
-        overlay.classList.remove('open');
       }
     } catch (err) {
       // If maintenance check fails, allow access as normal
