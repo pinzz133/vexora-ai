@@ -1730,9 +1730,17 @@
 
   // ── GENERATE ──
   async function generatePrompts() {
-    if (maintenanceActive) {
-      showError('🚧 ' + maintenanceMsgText);
-      return;
+    try {
+      const snap = await MAINTENANCE_DOC().get();
+      const data = snap.exists ? snap.data() : { enabled: false };
+      const user = firebase.auth().currentUser;
+      const isAdmin = user && user.email === ADMIN_EMAIL;
+      if (data.enabled && !isAdmin) {
+        showError('🚧 ' + (data.message || 'Situs sedang dalam perbaikan. Silakan kembali lagi nanti.'));
+        return;
+      }
+    } catch (err) {
+      // if check fails, allow through
     }
     const apiKey = localStorage.getItem('groq_key');
     if (!apiKey) { openModal(); return; }
