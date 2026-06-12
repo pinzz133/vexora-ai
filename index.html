@@ -1163,60 +1163,88 @@
   // ── ADMIN AUTH (Firebase Google Sign-In) ──
   const ADMIN_EMAIL = 'prastyaaris6@gmail.com';
 
+  function isMobileDevice() {
+    return /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+  }
+
   function loginWithGoogle() {
     const provider = new firebase.auth.GoogleAuthProvider();
-    firebase.auth().signInWithPopup(provider).catch(err => {
-      showToast('✗ Login gagal: ' + err.message);
-      const errEl = document.getElementById('loginGateError');
-      if (errEl) {
-        errEl.textContent = 'Login gagal: ' + err.message;
-        errEl.style.display = '';
-      }
-    });
+    if (isMobileDevice()) {
+      firebase.auth().signInWithRedirect(provider);
+    } else {
+      firebase.auth().signInWithPopup(provider).catch(err => {
+        showLoginError('Login gagal: ' + err.message);
+      });
+    }
   }
+
+  function showLoginError(msg) {
+    showToast('✗ ' + msg);
+    const errEl = document.getElementById('loginGateError');
+    if (errEl) {
+      errEl.textContent = msg;
+      errEl.style.display = '';
+    }
+  }
+
+  // Handle redirect result (mobile flow)
+  firebase.auth().getRedirectResult().catch(err => {
+    showLoginError('Login gagal (redirect): ' + err.message);
+  });
 
   function logoutGoogle() {
     firebase.auth().signOut();
   }
 
+
   firebase.auth().onAuthStateChanged(async user => {
-    const loginBtn = document.getElementById('loginBtn');
-    const loginStatus = document.getElementById('loginStatus');
-    const gate = document.getElementById('loginGate');
-    const content = document.getElementById('appContent');
+    try {
+      const loginBtn = document.getElementById('loginBtn');
+      const loginStatus = document.getElementById('loginStatus');
+      const gate = document.getElementById('loginGate');
+      const content = document.getElementById('appContent');
 
-    if (user) {
-      currentUser = user;
-      loginStatus.textContent = user.email;
-      loginBtn.onclick = logoutGoogle;
+      if (user) {
+        currentUser = user;
+        if (loginStatus) loginStatus.textContent = user.email;
+        if (loginBtn) loginBtn.onclick = logoutGoogle;
 
-      try {
-        await loadUserData(user);
-      } catch (err) {
-        console.error('loadUserData failed:', err);
-        cachedTokens = STARTING_TOKENS;
-        renderTokens(cachedTokens);
-        showToast('⚠️ Gagal sync token: ' + err.message);
-      }
+        try {
+          await loadUserData(user);
+        } catch (err) {
+          console.error('loadUserData failed:', err);
+          cachedTokens = STARTING_TOKENS;
+          renderTokens(cachedTokens);
+          showToast('⚠️ Gagal sync token: ' + err.message);
+        }
 
-      gate.classList.add('hidden');
-      content.classList.add('visible');
+        if (gate) gate.classList.add('hidden');
+        if (content) content.classList.add('visible');
 
-      if (user.email === ADMIN_EMAIL) {
-        showAdminButton();
+        if (user.email === ADMIN_EMAIL) {
+          showAdminButton();
+        } else {
+          hideAdminButton();
+        }
       } else {
+        currentUser = null;
+        if (loginStatus) loginStatus.textContent = 'Login with Google';
+        if (loginBtn) loginBtn.onclick = loginWithGoogle;
         hideAdminButton();
-      }
-    } else {
-      currentUser = null;
-      loginStatus.textContent = 'Login with Google';
-      loginBtn.onclick = loginWithGoogle;
-      hideAdminButton();
 
-      gate.classList.remove('hidden');
-      content.classList.remove('visible');
+        if (gate) gate.classList.remove('hidden');
+        if (content) content.classList.remove('visible');
+      }
+    } catch (err) {
+      console.error('onAuthStateChanged error:', err);
+      const errEl = document.getElementById('loginGateError');
+      if (errEl) {
+        errEl.textContent = 'Error: ' + err.message;
+        errEl.style.display = '';
+      }
     }
   });
+
 
 
   function showAdminButton() {
