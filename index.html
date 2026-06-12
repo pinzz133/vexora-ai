@@ -501,6 +501,35 @@
   }
   .toast.show { transform: translateY(0); opacity: 1; }
 
+  /* ── REDEEM BANNER (top) ── */
+  .redeem-banner {
+    position: fixed;
+    top: -70px;
+    left: 50%;
+    transform: translateX(-50%);
+    padding: 12px 28px;
+    border-radius: 10px;
+    font-family: var(--mono);
+    font-size: 13px;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+    z-index: 500;
+    transition: top 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+    pointer-events: none;
+    white-space: nowrap;
+  }
+  .redeem-banner.success {
+    background: rgba(74,222,128,0.15);
+    border: 1px solid var(--green);
+    color: var(--green);
+  }
+  .redeem-banner.error {
+    background: rgba(245,106,106,0.15);
+    border: 1px solid var(--vid);
+    color: var(--vid);
+  }
+  .redeem-banner.show { top: 24px; }
+
   /* ── DIVIDER SECTION ── */
   .section-divider {
     display: flex;
@@ -567,8 +596,108 @@
     margin-top: 8px;
   }
 
-  /* ── NARRATOR FIELDS (video only) ── */
-  .narrator-panel {
+  /* ── HAMBURGER ── */
+  .hamburger-btn {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 6px;
+    border-radius: 8px;
+    transition: background 0.2s;
+  }
+  .hamburger-btn:hover { background: rgba(255,255,255,0.06); }
+  .hamburger-btn span {
+    display: block;
+    width: 20px;
+    height: 2px;
+    background: var(--text);
+    border-radius: 2px;
+    transition: all 0.2s;
+  }
+
+  /* ── SIDEBAR ── */
+  .sidebar-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.55);
+    backdrop-filter: blur(3px);
+    z-index: 150;
+  }
+  .sidebar-overlay.open { display: block; }
+
+  .sidebar {
+    position: fixed;
+    top: 0; left: 0;
+    width: 280px;
+    height: 100vh;
+    background: var(--card);
+    border-right: 1px solid var(--border);
+    z-index: 160;
+    padding: 24px 20px;
+    transform: translateX(-100%);
+    transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+  .sidebar.open { transform: translateX(0); }
+
+  .sidebar-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 28px;
+  }
+  .sidebar-close {
+    background: none;
+    border: none;
+    color: var(--muted);
+    font-size: 18px;
+    cursor: pointer;
+    padding: 4px 8px;
+    border-radius: 6px;
+    transition: color 0.2s, background 0.2s;
+    line-height: 1;
+  }
+  .sidebar-close:hover { color: var(--text); background: rgba(255,255,255,0.06); }
+
+  .sidebar-section-label {
+    font-family: var(--mono);
+    font-size: 10px;
+    color: var(--muted);
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    padding: 0 4px;
+    margin-bottom: 4px;
+  }
+
+  .sidebar-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    width: 100%;
+    padding: 11px 14px;
+    background: transparent;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    color: var(--text);
+    font-family: var(--sans);
+    font-size: 14px;
+    cursor: pointer;
+    transition: border-color 0.2s, background 0.2s;
+    text-align: left;
+  }
+  .sidebar-item:hover {
+    border-color: var(--border-hi);
+    background: rgba(255,255,255,0.03);
+  }
+  .sidebar-item .api-dot {
+    flex-shrink: 0;
+  }
     display: none;
   }
   .narrator-panel.visible {
@@ -583,6 +712,58 @@
   @media(max-width:600px) {
     .lang-narrator-row { grid-template-columns: 1fr; }
   }
+
+  /* ── REDEEM INPUT ── */
+  .redeem-input-wrap {
+    display: flex;
+    align-items: center;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 0 14px;
+    gap: 10px;
+    margin-top: 16px;
+    transition: border-color 0.2s, box-shadow 0.2s;
+  }
+  .redeem-input-wrap:focus-within {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px rgba(167,139,250,0.12);
+  }
+  .redeem-input-icon {
+    font-size: 16px;
+    flex-shrink: 0;
+    opacity: 0.7;
+  }
+  .redeem-input-wrap input {
+    flex: 1;
+    background: transparent;
+    border: none;
+    outline: none;
+    color: var(--text);
+    font-family: var(--mono);
+    font-size: 14px;
+    letter-spacing: 0.08em;
+    padding: 14px 0;
+  }
+  .redeem-input-wrap input::placeholder {
+    color: var(--muted);
+    font-family: var(--sans);
+    letter-spacing: 0;
+    font-size: 14px;
+  }
+  .redeem-eye-btn {
+    background: none;
+    border: none;
+    color: var(--muted);
+    cursor: pointer;
+    padding: 4px;
+    border-radius: 4px;
+    display: flex;
+    align-items: center;
+    transition: color 0.2s;
+    flex-shrink: 0;
+  }
+  .redeem-eye-btn:hover { color: var(--accent); }
 </style>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
@@ -604,27 +785,46 @@
 
 <header>
   <div class="logo-group">
-    <div class="logo">VEXORA<span>PROMPT</span></div>
+    <button class="hamburger-btn" onclick="openSidebar()" aria-label="Open menu">
+      <span></span><span></span><span></span>
+    </button>
     <div class="token-pill" id="tokenPill" title="Sisa token generate">
       <span class="token-icon">⚡</span>
       <span id="tokenCount">150</span>
     </div>
-  </div>
-  <div style="display:flex; flex-direction:column; align-items:flex-end; gap:8px;">
-    <button class="api-pill" onclick="openModal()">
-      <div class="api-dot" id="apiDot"></div>
-      <span id="apiStatus">Set Groq API Key</span>
-    </button>
-    <button class="api-pill" id="loginBtn" onclick="loginWithGoogle()">
-      <span class="token-icon">🔐</span>
-      <span id="loginStatus">Login with Google</span>
-    </button>
-    <button class="api-pill" id="adminPanelBtn" onclick="openAdminPanel()" style="display:none;">
-      <span class="token-icon">🛠️</span>
-      <span>Admin Panel</span>
-    </button>
+    <div class="logo">VEXORA<span>PROMPT</span></div>
   </div>
 </header>
+
+<!-- SIDEBAR OVERLAY -->
+<div class="sidebar-overlay" id="sidebarOverlay" onclick="closeSidebar()"></div>
+
+<!-- SIDEBAR -->
+<div class="sidebar" id="sidebar">
+  <div class="sidebar-header">
+    <div class="logo">VEXORA<span>PROMPT</span></div>
+    <button class="sidebar-close" onclick="closeSidebar()" aria-label="Close menu">✕</button>
+  </div>
+  <div class="sidebar-section-label">API</div>
+  <button class="sidebar-item" onclick="openModal(); closeSidebar()">
+    <div class="api-dot" id="apiDotSidebar"></div>
+    <span id="apiStatusSidebar">Set Groq API Key</span>
+  </button>
+  <div class="sidebar-section-label" style="margin-top:20px">Account</div>
+  <button class="sidebar-item" id="loginBtnSidebar" onclick="loginWithGoogle()">
+    <span>🔐</span>
+    <span id="loginStatusSidebar">Login with Google</span>
+  </button>
+  <button class="sidebar-item" id="adminPanelBtnSidebar" onclick="openAdminPanel(); closeSidebar()" style="display:none;">
+    <span>🛠️</span>
+    <span>Admin Panel</span>
+  </button>
+  <div class="sidebar-section-label" style="margin-top:20px">Tokens</div>
+  <button class="sidebar-item" onclick="openRedeemModal(); closeSidebar()">
+    <span>🎟️</span>
+    <span>Redeem Code</span>
+  </button>
+</div>
 
 <main>
   <div class="hero">
@@ -1096,8 +1296,20 @@
     showToast('✓ API key saved');
   }
   function updateApiStatus(connected) {
-    document.getElementById('apiDot').className = connected ? 'api-dot connected' : 'api-dot';
-    document.getElementById('apiStatus').textContent = connected ? 'Groq Connected' : 'Set Groq API Key';
+    const dot = document.getElementById('apiDotSidebar');
+    const status = document.getElementById('apiStatusSidebar');
+    if (dot) dot.className = connected ? 'api-dot connected' : 'api-dot';
+    if (status) status.textContent = connected ? 'Groq Connected' : 'Set Groq API Key';
+  }
+
+  // ── SIDEBAR ──
+  function openSidebar() {
+    document.getElementById('sidebar').classList.add('open');
+    document.getElementById('sidebarOverlay').classList.add('open');
+  }
+  function closeSidebar() {
+    document.getElementById('sidebar').classList.remove('open');
+    document.getElementById('sidebarOverlay').classList.remove('open');
   }
 
   // ── ADMIN AUTH (Firebase Google Sign-In) ──
@@ -1115,8 +1327,8 @@
   }
 
   firebase.auth().onAuthStateChanged(user => {
-    const loginBtn = document.getElementById('loginBtn');
-    const loginStatus = document.getElementById('loginStatus');
+    const loginBtn = document.getElementById('loginBtnSidebar');
+    const loginStatus = document.getElementById('loginStatusSidebar');
     if (user) {
       loginStatus.textContent = user.email;
       loginBtn.onclick = logoutGoogle;
@@ -1133,11 +1345,11 @@
   });
 
   function showAdminButton() {
-    const btn = document.getElementById('adminPanelBtn');
+    const btn = document.getElementById('adminPanelBtnSidebar');
     if (btn) btn.style.display = '';
   }
   function hideAdminButton() {
-    const btn = document.getElementById('adminPanelBtn');
+    const btn = document.getElementById('adminPanelBtnSidebar');
     if (btn) btn.style.display = 'none';
   }
 
@@ -1382,37 +1594,15 @@ Generate exactly 3 variants. Each prompt must be a genuinely different directori
       const box = document.createElement('div');
       box.className = 'prompt-box';
       box.style.animationDelay = `${i * 0.06}s`;
-      const safePrompt = JSON.stringify(p.prompt);
-      const safeNarration = p.narration ? JSON.stringify(p.narration) : null;
 
       const langFlag = p.narration_language === 'indonesian' ? '🇮🇩 Bahasa Indonesia' : '🇬🇧 English';
-
       const durVal = isVideo ? document.getElementById('duration').value : '';
       const durLabel = durVal ? ` · ${durVal}` : '';
-      const narrationHTML = isVideo && p.narration ? `
-        <div class="narration-block">
-          <div class="narration-header">
-            <span class="narration-badge">🎙️ Narration${durLabel}</span>
-            <span class="narration-meta">${langFlag}</span>
-          </div>
-          ${p.narrator ? `<div style="font-size:11px;font-family:var(--mono);color:var(--muted);margin-bottom:8px;opacity:0.8;">Narrator — ${escapeHtml(p.narrator)}</div>` : ''}
-          <div class="narration-text">${escapeHtml(p.narration)}</div>
-          <div class="narration-copy-row">
-            <button class="copy-btn" onclick="copyPrompt(this, ${safeNarration})">
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
-                <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
-              </svg>
-              Copy Narration
-            </button>
-          </div>
-        </div>
-      ` : '';
 
       box.innerHTML = `
         <div class="prompt-box-header">
           <span class="variant-badge ${labelClass}">${p.variant || `Variant ${i + 1}`}</span>
-          <button class="copy-btn" onclick="copyPrompt(this, ${safePrompt})">
+          <button class="copy-btn" data-copy-text="" onclick="copyPrompt(this)">
             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
               <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
@@ -1422,8 +1612,33 @@ Generate exactly 3 variants. Each prompt must be a genuinely different directori
         </div>
         <div class="prompt-text">${escapeHtml(p.prompt)}</div>
         ${p.tip ? `<div class="prompt-tip">💡 ${escapeHtml(p.tip)}</div>` : ''}
-        ${narrationHTML}
+        ${isVideo && p.narration ? `
+        <div class="narration-block">
+          <div class="narration-header">
+            <span class="narration-badge">🎙️ Narration${durLabel}</span>
+            <span class="narration-meta">${langFlag}</span>
+          </div>
+          ${p.narrator ? `<div style="font-size:11px;font-family:var(--mono);color:var(--muted);margin-bottom:8px;opacity:0.8;">Narrator — ${escapeHtml(p.narrator)}</div>` : ''}
+          <div class="narration-text">${escapeHtml(p.narration)}</div>
+          <div class="narration-copy-row">
+            <button class="copy-btn" data-copy-text="" onclick="copyPrompt(this)">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+              </svg>
+              Copy Narration
+            </button>
+          </div>
+        </div>` : ''}
       `;
+
+      // Set data-copy-text safely via JS (avoids HTML attribute escaping issues)
+      const copyBtns = box.querySelectorAll('.copy-btn');
+      copyBtns[0].setAttribute('data-copy-text', p.prompt);
+      if (isVideo && p.narration && copyBtns[1]) {
+        copyBtns[1].setAttribute('data-copy-text', p.narration);
+      }
+
       container.appendChild(box);
     });
 
@@ -1435,8 +1650,72 @@ Generate exactly 3 variants. Each prompt must be a genuinely different directori
     return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
   }
 
+  // ── REDEEM SYSTEM ──
+  var REDEEM_CODES = {
+    'NEWRELEASE': { tokens: 100, used_key: 'redeem_used_NEWRELEASE' }
+  };
+
+  function openRedeemModal() {
+    const inp = document.getElementById('redeemCodeInput');
+    inp.value = '';
+    inp.type = 'password';
+    document.getElementById('redeemModalOverlay').classList.add('open');
+    setTimeout(() => inp.focus(), 100);
+  }
+  function closeRedeemModal() {
+    document.getElementById('redeemModalOverlay').classList.remove('open');
+  }
+  function closeRedeemModalOutside(e) {
+    if (e.target === document.getElementById('redeemModalOverlay')) closeRedeemModal();
+  }
+  function toggleRedeemVisibility(btn) {
+    const inp = document.getElementById('redeemCodeInput');
+    const isHidden = inp.type === 'password';
+    inp.type = isHidden ? 'text' : 'password';
+    btn.innerHTML = isHidden
+      ? `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path><line x1="1" y1="1" x2="23" y2="23"></line></svg>`
+      : `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>`;
+  }
+  function submitRedeemCode() {
+    const input = document.getElementById('redeemCodeInput').value.trim().toUpperCase();
+    if (!input) return;
+    const code = REDEEM_CODES[input];
+    if (!code) {
+      closeRedeemModal();
+      showRedeemBanner('❌ Wrong Redeem Code', 'error');
+      return;
+    }
+    if (localStorage.getItem(code.used_key)) {
+      closeRedeemModal();
+      showRedeemBanner('❌ Code Already Used', 'error');
+      return;
+    }
+    localStorage.setItem(code.used_key, '1');
+    setTokens(getTokens() + code.tokens);
+    renderTokens(getTokens(), true);
+    closeRedeemModal();
+    showRedeemBanner(`✓ Success Redeem — +${code.tokens} Tokens!`, 'success');
+  }
+
+  function showRedeemBanner(msg, type) {
+    const banner = document.getElementById('redeemBanner');
+    banner.textContent = msg;
+    banner.className = `redeem-banner ${type} show`;
+    setTimeout(() => { banner.classList.remove('show'); }, 3000);
+  }
+
+  // Allow Enter key in redeem input
+  document.addEventListener('DOMContentLoaded', () => {
+    const ri = document.getElementById('redeemCodeInput');
+    if (ri) ri.addEventListener('keydown', e => { if (e.key === 'Enter') submitRedeemCode(); });
+  });
+
   // ── COPY ──
-  async function copyPrompt(btn, text) {
+  async function copyPrompt(btn) {
+    const text = btn.closest('[data-prompt-text]')
+      ? btn.closest('[data-prompt-text]').getAttribute('data-prompt-text')
+      : btn.getAttribute('data-copy-text');
+    if (!text) return;
     try {
       await navigator.clipboard.writeText(text);
       btn.classList.add('copied');
@@ -1494,5 +1773,30 @@ Generate exactly 3 variants. Each prompt must be a genuinely different directori
     setTimeout(() => t.classList.remove('show'), 2200);
   }
 </script>
+<!-- REDEEM BANNER -->
+<div class="redeem-banner" id="redeemBanner"></div>
+
+<!-- REDEEM MODAL -->
+<div class="modal-overlay" id="redeemModalOverlay" onclick="closeRedeemModalOutside(event)">
+  <div class="modal">
+    <h2>🎟️ Redeem Token Code</h2>
+    <p>Enter your redeem code to get bonus tokens.</p>
+    <div class="redeem-input-wrap">
+      <span class="redeem-input-icon">🔑</span>
+      <input type="password" id="redeemCodeInput" placeholder="Enter redeem code" autocomplete="off" spellcheck="false" oninput="this.value=this.value.toUpperCase()">
+      <button class="redeem-eye-btn" onclick="toggleRedeemVisibility(this)" title="Show/hide code">
+        <svg id="eyeIcon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+          <circle cx="12" cy="12" r="3"></circle>
+        </svg>
+      </button>
+    </div>
+    <div class="modal-actions">
+      <button class="btn-ghost" onclick="closeRedeemModal()">Cancel</button>
+      <button class="btn-primary" onclick="submitRedeemCode()">Redeem</button>
+    </div>
+  </div>
+</div>
+
 </body>
 </html>
