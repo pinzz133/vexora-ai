@@ -1730,6 +1730,10 @@
 
   // ── GENERATE ──
   async function generatePrompts() {
+    if (maintenanceActive) {
+      showError('🚧 ' + maintenanceMsgText);
+      return;
+    }
     const apiKey = localStorage.getItem('groq_key');
     if (!apiKey) { openModal(); return; }
 
@@ -2183,14 +2187,17 @@ Generate exactly 3 variants. Each prompt must be a genuinely different directori
   }
 
   // ── MAINTENANCE CHECK (runs for all visitors) ──
+  let maintenanceActive = false;
+  let maintenanceMsgText = 'Situs sedang dalam perbaikan. Silakan kembali lagi nanti.';
   async function checkMaintenanceMode(isAdmin) {
     try {
       const snap = await MAINTENANCE_DOC().get();
       const data = snap.exists ? snap.data() : { enabled: false };
+      maintenanceActive = !!data.enabled && !isAdmin;
+      maintenanceMsgText = data.message || 'Situs sedang dalam perbaikan. Silakan kembali lagi nanti.';
       const overlay = document.getElementById('maintenanceOverlay');
-      if (data.enabled && !isAdmin) {
-        document.getElementById('maintenanceOverlayMsg').textContent =
-          data.message || 'Situs sedang dalam perbaikan. Silakan kembali lagi nanti.';
+      if (maintenanceActive) {
+        document.getElementById('maintenanceOverlayMsg').textContent = maintenanceMsgText;
         overlay.style.display = 'flex';
         overlay.classList.add('open');
       } else {
