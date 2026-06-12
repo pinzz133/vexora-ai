@@ -651,6 +651,12 @@
     color: var(--vid);
   }
   .redeem-banner.show { top: 24px; }
+  .redeem-banner.wrap {
+    white-space: normal;
+    text-align: center;
+    max-width: 85vw;
+    width: max-content;
+  }
 
   /* ── DIVIDER SECTION ── */
   .section-divider {
@@ -1275,10 +1281,7 @@
   </div>
 </div>
 
-<!-- MAINTENANCE BANNER -->
-<div id="maintenanceOverlay" style="display:none;position:sticky;top:0;z-index:150;background:#f56a6a;color:#1a0505;padding:10px 16px;text-align:center;font-size:13px;font-weight:600;">
-  <span id="maintenanceOverlayMsg"></span>
-</div>
+
 
 
 
@@ -1733,7 +1736,7 @@
       const user = firebase.auth().currentUser;
       const isAdmin = user && user.email === ADMIN_EMAIL;
       if (data.enabled && !isAdmin) {
-        showRedeemBanner(data.message || 'Situs sedang dalam perbaikan. Silakan kembali lagi nanti.', 'error', 5000);
+        showRedeemBanner(data.message || 'Situs sedang dalam perbaikan. Silakan kembali lagi nanti.', 'error', 5000, 'wrap');
         return;
       }
     } catch (err) {
@@ -2204,22 +2207,15 @@ Generate exactly 3 variants. Each prompt must be a genuinely different directori
       const data = snap.exists ? snap.data() : { enabled: false };
       maintenanceActive = !!data.enabled && !isAdmin;
       maintenanceMsgText = data.message || 'Situs sedang dalam perbaikan. Silakan kembali lagi nanti.';
-      const overlay = document.getElementById('maintenanceOverlay');
-      if (maintenanceActive) {
-        document.getElementById('maintenanceOverlayMsg').textContent = maintenanceMsgText;
-        overlay.style.display = 'block';
-      } else {
-        overlay.style.display = 'none';
-      }
     } catch (err) {
       // If maintenance check fails, allow access as normal
     }
   }
 
-  function showRedeemBanner(msg, type, duration) {
+  function showRedeemBanner(msg, type, duration, extraClass) {
     const banner = document.getElementById('redeemBanner');
     banner.textContent = msg;
-    banner.className = `redeem-banner ${type} show`;
+    banner.className = `redeem-banner ${type} show${extraClass ? ' ' + extraClass : ''}`;
     setTimeout(() => { banner.classList.remove('show'); }, duration || 3000);
   }
 
