@@ -335,14 +335,136 @@
     gap: 12px;
   }
 
+  @keyframes promptReveal {
+    0%   { opacity: 0; transform: translateY(18px) scale(0.97); filter: blur(4px); }
+    60%  { filter: blur(0); }
+    100% { opacity: 1; transform: translateY(0) scale(1); filter: blur(0); }
+  }
+
   .prompt-box {
     background: var(--surface);
     border: 1px solid var(--border);
     border-radius: 12px;
     overflow: hidden;
-    transition: border-color 0.2s;
+    transition: border-color 0.25s, box-shadow 0.25s;
+    opacity: 0;
+    animation: promptReveal 0.55s cubic-bezier(0.22, 1, 0.36, 1) forwards;
   }
-  .prompt-box:hover { border-color: var(--border-hi); }
+  .prompt-box:hover {
+    border-color: var(--border-hi);
+    box-shadow: 0 4px 24px rgba(124,106,245,0.08);
+  }
+
+  /* ── INSPIRE ME MODAL ── */
+  .inspire-modal {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    padding: 28px;
+    width: min(520px, 92vw);
+    max-height: 80vh;
+    overflow-y: auto;
+  }
+  .inspire-modal h2 {
+    font-size: 17px;
+    font-weight: 700;
+    margin-bottom: 6px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .inspire-modal p {
+    color: var(--muted);
+    font-size: 13px;
+    margin-bottom: 20px;
+  }
+  .inspire-category-label {
+    font-family: var(--mono);
+    font-size: 10px;
+    color: var(--muted);
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    margin: 16px 0 8px;
+  }
+  .inspire-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+  }
+  @media(max-width:480px) { .inspire-grid { grid-template-columns: 1fr; } }
+
+  .inspire-card {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    padding: 12px 14px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    cursor: pointer;
+    text-align: left;
+    transition: border-color 0.18s, background 0.18s, transform 0.15s;
+    width: 100%;
+  }
+  .inspire-card:hover {
+    border-color: var(--accent);
+    background: rgba(167,139,250,0.06);
+    transform: translateY(-1px);
+  }
+  .inspire-card-icon { font-size: 20px; flex-shrink: 0; line-height: 1.3; }
+  .inspire-card-title {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text);
+    margin-bottom: 2px;
+  }
+  .inspire-card-desc {
+    font-size: 11px;
+    color: var(--muted);
+    line-height: 1.4;
+  }
+  .inspire-random-btn {
+    width: 100%;
+    margin-top: 16px;
+    padding: 13px;
+    border-radius: 10px;
+    border: 1px dashed var(--border-hi);
+    background: transparent;
+    color: var(--accent);
+    font-family: var(--sans);
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    transition: border-color 0.2s, background 0.2s;
+  }
+  .inspire-random-btn:hover {
+    border-color: var(--accent);
+    background: rgba(167,139,250,0.07);
+  }
+  .inspire-btn {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 12px;
+    border-radius: 8px;
+    border: 1px solid var(--border);
+    background: transparent;
+    color: var(--muted);
+    font-size: 12px;
+    font-family: var(--sans);
+    cursor: pointer;
+    transition: all 0.15s;
+    white-space: nowrap;
+  }
+  .inspire-btn:hover {
+    border-color: var(--accent);
+    color: var(--accent);
+    background: rgba(167,139,250,0.07);
+  }
 
   .prompt-box-header {
     display: flex;
@@ -847,7 +969,12 @@
   <div class="form-card">
     <!-- Subject -->
     <div class="field">
-      <label>Subject / Main Idea</label>
+      <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:6px;">
+        <label style="margin-bottom:0">Subject / Main Idea</label>
+        <button class="inspire-btn" onclick="openInspireModal()">
+          <span>✦</span> Inspire Me
+        </button>
+      </div>
       <textarea id="subject" placeholder="e.g. a lone astronaut floating above a neon-lit alien city at dusk..." rows="3"></textarea>
     </div>
 
@@ -1300,6 +1427,137 @@
     const status = document.getElementById('apiStatusSidebar');
     if (dot) dot.className = connected ? 'api-dot connected' : 'api-dot';
     if (status) status.textContent = connected ? 'Groq Connected' : 'Set Groq API Key';
+  }
+
+  // ── INSPIRE ME ──
+  const STYLE_SUGGESTIONS = {
+    'Luar Angkasa': ['cinematic', 'concept art', '3D render'],
+    'Laut & Bawah Air': ['photorealistic', 'cinematic', 'concept art'],
+    'Alam Liar': ['photorealistic', 'cinematic', 'watercolor'],
+    'Fenomena Alam': ['cinematic', 'photorealistic', '3D render'],
+    'Kota Futuristik': ['cyberpunk', 'cinematic', '3D render'],
+    'Arsitektur Kuno': ['cinematic', 'oil painting', 'photorealistic'],
+    'Kota Malam': ['cinematic', 'photorealistic', 'vintage film'],
+    'Post-Apocalyptic': ['cinematic', 'concept art', 'dark fantasy'],
+    'Pejuang / Warrior': ['cinematic', 'concept art', 'dark fantasy'],
+    'Penyihir / Mage': ['dark fantasy', 'concept art', 'cinematic'],
+    'Robot & Android': ['cyberpunk', 'concept art', '3D render'],
+    'Superhero': ['cinematic', 'concept art', '3D render'],
+    'Mimpi & Surreal': ['surrealism', 'concept art', 'cinematic'],
+    'Waktu & Memori': ['surrealism', 'oil painting', 'cinematic'],
+    'Dimensi Paralel': ['surrealism', 'concept art', '3D render'],
+    'Mistis & Okultisme': ['dark fantasy', 'concept art', 'cinematic'],
+    'Naga & Monster': ['dark fantasy', 'concept art', 'cinematic'],
+    'Dunia Peri': ['illustration', 'watercolor', 'cinematic'],
+    'Dewa & Mitologi': ['cinematic', 'concept art', 'oil painting'],
+    'Dark Fantasy': ['dark fantasy', 'cinematic', 'concept art'],
+  };
+
+  const ALL_INSPIRE_THEMES = Object.keys(STYLE_SUGGESTIONS);
+
+  function openInspireModal() {
+    document.getElementById('inspireOverlay').classList.add('open');
+  }
+  function closeInspireModal() {
+    document.getElementById('inspireOverlay').classList.remove('open');
+  }
+  function closeInspireOutside(e) {
+    if (e.target === document.getElementById('inspireOverlay')) closeInspireModal();
+  }
+
+  async function applyInspire(title) {
+    const apiKey = localStorage.getItem('groq_key');
+    closeInspireModal();
+
+    const ta = document.getElementById('subject');
+    ta.value = '';
+    ta.placeholder = '✦ AI sedang membuat ide...';
+    ta.disabled = true;
+    ta.style.transition = 'box-shadow 0.3s';
+    ta.style.boxShadow = '0 0 0 2px var(--accent)';
+    ta.scrollIntoView({ behavior: 'smooth', block: 'center' });
+
+    try {
+      let generatedSubject = '';
+
+      if (apiKey) {
+        // Use Groq API
+        const res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${apiKey}`
+          },
+          body: JSON.stringify({
+            model: 'llama-3.3-70b-versatile',
+            messages: [
+              {
+                role: 'system',
+                content: `You are a creative AI prompt idea generator. Generate ONE vivid, specific, and evocative subject/scene idea for AI image or video generation. The idea must be 1-2 sentences maximum, rich with visual detail, and feel fresh and original. Return ONLY the idea text — no labels, no quotes, no explanation.`
+              },
+              {
+                role: 'user',
+                content: `Generate a unique and visually compelling scene idea for the theme: "${title}". Make it specific, atmospheric, and imaginative. 1-2 sentences only.`
+              }
+            ],
+            max_tokens: 120,
+            temperature: 1.0
+          })
+        });
+        const data = await res.json();
+        generatedSubject = data.choices?.[0]?.message?.content?.trim() || '';
+      }
+
+      if (!generatedSubject) {
+        // Fallback: use Anthropic API
+        const res = await fetch('https://api.anthropic.com/v1/messages', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            model: 'claude-sonnet-4-6',
+            max_tokens: 120,
+            messages: [{
+              role: 'user',
+              content: `Generate ONE unique, vivid, and visually compelling scene idea for AI image/video generation. Theme: "${title}". Make it specific, atmospheric, and imaginative. Return ONLY the idea — 1-2 sentences, no labels, no quotes.`
+            }]
+          })
+        });
+        const data = await res.json();
+        generatedSubject = data.content?.[0]?.text?.trim() || `A stunning ${title} scene`;
+      }
+
+      ta.value = generatedSubject;
+
+    } catch (err) {
+      ta.value = '';
+      showToast('✗ Gagal generate ide, coba lagi');
+    } finally {
+      ta.disabled = false;
+      ta.placeholder = 'e.g. a lone astronaut floating above a neon-lit alien city at dusk...';
+      setTimeout(() => { ta.style.boxShadow = ''; }, 900);
+    }
+
+    // Apply style tags
+    document.querySelectorAll('.qtag').forEach(t => t.classList.remove('selected'));
+    selectedStyleTags.clear();
+    const tags = STYLE_SUGGESTIONS[title] || [];
+    document.querySelectorAll('.qtag').forEach(t => {
+      if (tags.includes(t.textContent)) {
+        t.classList.add('selected');
+        selectedStyleTags.add(t.textContent);
+      }
+    });
+    updateGenButtonCost();
+  }
+
+  function pickInspire(btn) {
+    const title = btn.querySelector('.inspire-card-title').textContent;
+    applyInspire(title);
+  }
+
+  function pickRandomInspire() {
+    const randomKey = ALL_INSPIRE_THEMES[Math.floor(Math.random() * ALL_INSPIRE_THEMES.length)];
+    applyInspire(randomKey);
   }
 
   // ── SIDEBAR ──
@@ -1773,6 +2031,118 @@ Generate exactly 3 variants. Each prompt must be a genuinely different directori
     setTimeout(() => t.classList.remove('show'), 2200);
   }
 </script>
+<!-- INSPIRE ME MODAL -->
+<div class="modal-overlay" id="inspireOverlay" onclick="closeInspireOutside(event)">
+  <div class="inspire-modal">
+    <h2>✦ Inspire Me</h2>
+    <p>Pilih tema atau topik yang ingin kamu buat promptnya.</p>
+
+    <div class="inspire-category-label">🌍 Alam & Lingkungan</div>
+    <div class="inspire-grid">
+      <button class="inspire-card" onclick="pickInspire(this)">
+        <span class="inspire-card-icon">🌌</span>
+        <div><div class="inspire-card-title">Luar Angkasa</div><div class="inspire-card-desc">Galaksi, nebula, astronot, planet asing</div></div>
+      </button>
+      <button class="inspire-card" onclick="pickInspire(this)">
+        <span class="inspire-card-icon">🌊</span>
+        <div><div class="inspire-card-title">Laut & Bawah Air</div><div class="inspire-card-desc">Terumbu karang, makhluk laut, kedalaman samudra</div></div>
+      </button>
+      <button class="inspire-card" onclick="pickInspire(this)">
+        <span class="inspire-card-icon">🏔️</span>
+        <div><div class="inspire-card-title">Alam Liar</div><div class="inspire-card-desc">Hutan, gunung, padang pasir, tundra</div></div>
+      </button>
+      <button class="inspire-card" onclick="pickInspire(this)">
+        <span class="inspire-card-icon">🌋</span>
+        <div><div class="inspire-card-title">Fenomena Alam</div><div class="inspire-card-desc">Badai, aurora, letusan gunung berapi</div></div>
+      </button>
+    </div>
+
+    <div class="inspire-category-label">🏙️ Urban & Arsitektur</div>
+    <div class="inspire-grid">
+      <button class="inspire-card" onclick="pickInspire(this)">
+        <span class="inspire-card-icon">🌆</span>
+        <div><div class="inspire-card-title">Kota Futuristik</div><div class="inspire-card-desc">Cyberpunk, neon, megacity 2100</div></div>
+      </button>
+      <button class="inspire-card" onclick="pickInspire(this)">
+        <span class="inspire-card-icon">🏛️</span>
+        <div><div class="inspire-card-title">Arsitektur Kuno</div><div class="inspire-card-desc">Kuil, istana, reruntuhan peradaban</div></div>
+      </button>
+      <button class="inspire-card" onclick="pickInspire(this)">
+        <span class="inspire-card-icon">🌉</span>
+        <div><div class="inspire-card-title">Kota Malam</div><div class="inspire-card-desc">Jembatan, refleksi lampu, atmosfer malam</div></div>
+      </button>
+      <button class="inspire-card" onclick="pickInspire(this)">
+        <span class="inspire-card-icon">🏚️</span>
+        <div><div class="inspire-card-title">Post-Apocalyptic</div><div class="inspire-card-desc">Kota hancur, alam kembali menguasai</div></div>
+      </button>
+    </div>
+
+    <div class="inspire-category-label">👤 Karakter & Potret</div>
+    <div class="inspire-grid">
+      <button class="inspire-card" onclick="pickInspire(this)">
+        <span class="inspire-card-icon">⚔️</span>
+        <div><div class="inspire-card-title">Pejuang / Warrior</div><div class="inspire-card-desc">Ksatria, samurai, prajurit epik</div></div>
+      </button>
+      <button class="inspire-card" onclick="pickInspire(this)">
+        <span class="inspire-card-icon">🧙</span>
+        <div><div class="inspire-card-title">Penyihir / Mage</div><div class="inspire-card-desc">Mantra, jubah, kekuatan magis</div></div>
+      </button>
+      <button class="inspire-card" onclick="pickInspire(this)">
+        <span class="inspire-card-icon">🤖</span>
+        <div><div class="inspire-card-title">Robot & Android</div><div class="inspire-card-desc">AI humanoid, cyborg, mesin futuristik</div></div>
+      </button>
+      <button class="inspire-card" onclick="pickInspire(this)">
+        <span class="inspire-card-icon">🦸</span>
+        <div><div class="inspire-card-title">Superhero</div><div class="inspire-card-desc">Kekuatan super, kostum, aksi dramatis</div></div>
+      </button>
+    </div>
+
+    <div class="inspire-category-label">🎨 Konsep & Abstrak</div>
+    <div class="inspire-grid">
+      <button class="inspire-card" onclick="pickInspire(this)">
+        <span class="inspire-card-icon">💭</span>
+        <div><div class="inspire-card-title">Mimpi & Surreal</div><div class="inspire-card-desc">Dimensi lain, logika terbalik, dreamscape</div></div>
+      </button>
+      <button class="inspire-card" onclick="pickInspire(this)">
+        <span class="inspire-card-icon">⏳</span>
+        <div><div class="inspire-card-title">Waktu & Memori</div><div class="inspire-card-desc">Nostalgia, jam rusak, paradoks waktu</div></div>
+      </button>
+      <button class="inspire-card" onclick="pickInspire(this)">
+        <span class="inspire-card-icon">🌀</span>
+        <div><div class="inspire-card-title">Dimensi Paralel</div><div class="inspire-card-desc">Multiverse, cermin, realita ganda</div></div>
+      </button>
+      <button class="inspire-card" onclick="pickInspire(this)">
+        <span class="inspire-card-icon">🔮</span>
+        <div><div class="inspire-card-title">Mistis & Okultisme</div><div class="inspire-card-desc">Ritual, simbol kuno, energi kosmik</div></div>
+      </button>
+    </div>
+
+    <div class="inspire-category-label">🐉 Fantasi & Mitologi</div>
+    <div class="inspire-grid">
+      <button class="inspire-card" onclick="pickInspire(this)">
+        <span class="inspire-card-icon">🐉</span>
+        <div><div class="inspire-card-title">Naga & Monster</div><div class="inspire-card-desc">Makhluk mitologi, beast epik, raksasa</div></div>
+      </button>
+      <button class="inspire-card" onclick="pickInspire(this)">
+        <span class="inspire-card-icon">🧚</span>
+        <div><div class="inspire-card-title">Dunia Peri</div><div class="inspire-card-desc">Hutan ajaib, makhluk kecil, cahaya magis</div></div>
+      </button>
+      <button class="inspire-card" onclick="pickInspire(this)">
+        <span class="inspire-card-icon">⚡</span>
+        <div><div class="inspire-card-title">Dewa & Mitologi</div><div class="inspire-card-desc">Zeus, Thor, dewa-dewi epik</div></div>
+      </button>
+      <button class="inspire-card" onclick="pickInspire(this)">
+        <span class="inspire-card-icon">🌙</span>
+        <div><div class="inspire-card-title">Dark Fantasy</div><div class="inspire-card-desc">Kegelapan, kutukan, kerajaan bayangan</div></div>
+      </button>
+    </div>
+
+    <button class="inspire-random-btn" onclick="pickRandomInspire()">
+      🎲 Random — Kejutkan Saya!
+    </button>
+  </div>
+</div>
+
 <!-- REDEEM BANNER -->
 <div class="redeem-banner" id="redeemBanner"></div>
 
