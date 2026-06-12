@@ -889,6 +889,7 @@
 </style>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
 <script>
   const firebaseConfig = {
     apiKey: "AIzaSyBdegJHGGZkjcCBgHFF7gfY_8SuRFqioZM",
@@ -900,6 +901,7 @@
     appId: "1:313042871514:web:81c4b9361346e7c55e71e3"
   };
   firebase.initializeApp(firebaseConfig);
+  const db = firebase.firestore();
 </script>
 </head>
 <body>
@@ -1204,17 +1206,80 @@
 </div>
 <!-- ADMIN PANEL MODAL -->
 <div class="modal-overlay" id="adminPanelOverlay" onclick="closeAdminPanelOutside(event)">
-  <div class="modal">
+  <div class="modal" style="max-width:480px;">
     <h2>🛠️ Admin Panel</h2>
-    <p>Selamat datang, admin. Kelola pengaturan token di sini.</p>
-    <div class="field" style="margin-top:12px">
-      <label>Token Saat Ini</label>
-      <div style="font-family: var(--mono); font-size: 20px; color: var(--accent);" id="adminCurrentTokens">-</div>
+    <p>Selamat datang, admin. Kelola pengaturan di sini.</p>
+
+    <div class="mode-tabs" style="margin:16px 0 0;width:100%;">
+      <button class="tab-btn active-img" id="adminTabBtn-tokens" onclick="switchAdminTab('tokens')" style="flex:1;justify-content:center;">Tokens</button>
+      <button class="tab-btn" id="adminTabBtn-redeem" onclick="switchAdminTab('redeem')" style="flex:1;justify-content:center;">Redeem Codes</button>
+      <button class="tab-btn" id="adminTabBtn-maintenance" onclick="switchAdminTab('maintenance')" style="flex:1;justify-content:center;">Maintenance</button>
     </div>
+
+    <!-- TOKENS TAB -->
+    <div id="adminTab-tokens" class="admin-tab-panel">
+      <div class="field" style="margin-top:16px">
+        <label>Token Saat Ini</label>
+        <div style="font-family: var(--mono); font-size: 20px; color: var(--accent);" id="adminCurrentTokens">-</div>
+      </div>
+      <div class="modal-actions">
+        <button class="btn-primary" onclick="setUnlimitedTokens()">Set Unlimited Tokens</button>
+      </div>
+    </div>
+
+    <!-- REDEEM CODE MANAGER TAB -->
+    <div id="adminTab-redeem" class="admin-tab-panel" style="display:none;">
+      <div class="field-row" style="margin-top:16px">
+        <div class="field">
+          <label>Kode</label>
+          <input type="text" id="newRedeemCode" placeholder="e.g. BONUS100" style="font-family: var(--mono); text-transform:uppercase" oninput="this.value=this.value.toUpperCase()">
+        </div>
+        <div class="field">
+          <label>Jumlah Token</label>
+          <input type="number" id="newRedeemTokens" placeholder="100" min="1">
+        </div>
+      </div>
+      <div class="field" style="margin-bottom:12px">
+        <label>Max Penggunaan</label>
+        <input type="number" id="newRedeemMaxUses" placeholder="1" min="1" value="1">
+      </div>
+      <div class="modal-actions" style="justify-content:flex-start;margin-bottom:16px">
+        <button class="btn-primary" onclick="createRedeemCode()">+ Buat Kode</button>
+      </div>
+      <div id="redeemCodeList" style="display:flex;flex-direction:column;gap:8px;max-height:240px;overflow-y:auto;">
+        <div style="color:var(--muted);font-size:13px;">Memuat kode...</div>
+      </div>
+    </div>
+
+    <!-- MAINTENANCE TAB -->
+    <div id="adminTab-maintenance" class="admin-tab-panel" style="display:none;">
+      <div class="field" style="margin-top:16px">
+        <label>Status Maintenance</label>
+        <div style="display:flex;align-items:center;gap:10px;margin-top:4px;">
+          <span id="maintenanceStatusLabel" style="font-family:var(--mono);font-size:13px;color:var(--muted);">Memuat...</span>
+        </div>
+      </div>
+      <div class="field" style="margin-bottom:12px">
+        <label>Pesan Maintenance</label>
+        <textarea id="maintenanceMessage" rows="3" placeholder="Situs sedang dalam perbaikan. Silakan kembali lagi nanti." style="resize:vertical;width:100%;font-family:var(--sans);background:var(--surface);border:1px solid var(--border);border-radius:8px;color:var(--text);padding:10px;font-size:13px;"></textarea>
+      </div>
+      <div class="modal-actions" style="justify-content:flex-start;gap:10px;">
+        <button class="btn-primary" id="maintenanceToggleBtn" onclick="toggleMaintenance()">Aktifkan Maintenance</button>
+        <button class="btn-ghost" onclick="saveMaintenanceMessage()">Simpan Pesan</button>
+      </div>
+    </div>
+
     <div class="modal-actions">
       <button class="btn-ghost" onclick="closeAdminPanelModal()">Tutup</button>
-      <button class="btn-primary" onclick="setUnlimitedTokens()">Set Unlimited Tokens</button>
     </div>
+  </div>
+</div>
+
+<!-- MAINTENANCE OVERLAY -->
+<div class="modal-overlay" id="maintenanceOverlay" style="display:none;z-index:99999;">
+  <div class="modal" style="text-align:center;">
+    <h2>🚧 Sedang Maintenance</h2>
+    <p id="maintenanceOverlayMsg">Situs sedang dalam perbaikan. Silakan kembali lagi nanti.</p>
   </div>
 </div>
 
@@ -1587,10 +1652,12 @@
   firebase.auth().onAuthStateChanged(user => {
     const loginBtn = document.getElementById('loginBtnSidebar');
     const loginStatus = document.getElementById('loginStatusSidebar');
+    let isAdmin = false;
     if (user) {
       loginStatus.textContent = user.email;
       loginBtn.onclick = logoutGoogle;
       if (user.email === ADMIN_EMAIL) {
+        isAdmin = true;
         showAdminButton();
       } else {
         hideAdminButton();
@@ -1600,6 +1667,7 @@
       loginBtn.onclick = loginWithGoogle;
       hideAdminButton();
     }
+    checkMaintenanceMode(isAdmin);
   });
 
   function showAdminButton() {
@@ -1616,6 +1684,18 @@
     const overlay = document.getElementById('adminPanelOverlay');
     if (tokEl) tokEl.textContent = getTokens();
     if (overlay) overlay.classList.add('open');
+    switchAdminTab('tokens');
+    loadRedeemCodeList();
+    loadMaintenanceStatus();
+  }
+
+  function switchAdminTab(tab) {
+    ['tokens', 'redeem', 'maintenance'].forEach(t => {
+      const panel = document.getElementById('adminTab-' + t);
+      const btn = document.getElementById('adminTabBtn-' + t);
+      if (panel) panel.style.display = (t === tab) ? '' : 'none';
+      if (btn) btn.className = (t === tab) ? 'tab-btn active-img' : 'tab-btn';
+    });
   }
   function closeAdminPanelModal() {
     const overlay = document.getElementById('adminPanelOverlay');
@@ -1908,11 +1988,7 @@ Generate exactly 3 variants. Each prompt must be a genuinely different directori
     return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
   }
 
-  // ── REDEEM SYSTEM ──
-  var REDEEM_CODES = {
-    'NEWRELEASE': { tokens: 100, used_key: 'redeem_used_NEWRELEASE' }
-  };
-
+  // ── REDEEM SYSTEM (Firestore) ──
   function openRedeemModal() {
     const inp = document.getElementById('redeemCodeInput');
     inp.value = '';
@@ -1934,25 +2010,196 @@ Generate exactly 3 variants. Each prompt must be a genuinely different directori
       ? `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path><line x1="1" y1="1" x2="23" y2="23"></line></svg>`
       : `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>`;
   }
-  function submitRedeemCode() {
+
+  async function submitRedeemCode() {
     const input = document.getElementById('redeemCodeInput').value.trim().toUpperCase();
     if (!input) return;
-    const code = REDEEM_CODES[input];
-    if (!code) {
-      closeRedeemModal();
-      showRedeemBanner('❌ Wrong Redeem Code', 'error');
-      return;
-    }
-    if (localStorage.getItem(code.used_key)) {
+
+    // Block if this device already redeemed this code
+    const localUsedKey = 'redeem_used_' + input;
+    if (localStorage.getItem(localUsedKey)) {
       closeRedeemModal();
       showRedeemBanner('❌ Code Already Used', 'error');
       return;
     }
-    localStorage.setItem(code.used_key, '1');
-    setTokens(getTokens() + code.tokens);
-    renderTokens(getTokens(), true);
-    closeRedeemModal();
-    showRedeemBanner(`✓ Success Redeem — +${code.tokens} Tokens!`, 'success');
+
+    const ref = db.collection('redeemCodes').doc(input);
+    try {
+      const result = await db.runTransaction(async (tx) => {
+        const snap = await tx.get(ref);
+        if (!snap.exists) throw new Error('NOT_FOUND');
+        const data = snap.data();
+        if (data.active === false) throw new Error('INACTIVE');
+        const maxUses = data.maxUses || 1;
+        const uses = data.uses || 0;
+        if (uses >= maxUses) throw new Error('EXHAUSTED');
+        tx.update(ref, { uses: uses + 1 });
+        return data.tokens || 0;
+      });
+
+      localStorage.setItem(localUsedKey, '1');
+      setTokens(getTokens() + result);
+      renderTokens(getTokens(), true);
+      closeRedeemModal();
+      showRedeemBanner(`✓ Success Redeem — +${result} Tokens!`, 'success');
+    } catch (err) {
+      closeRedeemModal();
+      if (err.message === 'NOT_FOUND') {
+        showRedeemBanner('❌ Wrong Redeem Code', 'error');
+      } else if (err.message === 'EXHAUSTED') {
+        showRedeemBanner('❌ Code Already Used', 'error');
+      } else if (err.message === 'INACTIVE') {
+        showRedeemBanner('❌ Code Inactive', 'error');
+      } else {
+        showRedeemBanner('❌ Gagal redeem, coba lagi', 'error');
+      }
+    }
+  }
+
+  // ── ADMIN: REDEEM CODE MANAGER (Firestore) ──
+  async function createRedeemCode() {
+    const codeEl = document.getElementById('newRedeemCode');
+    const tokensEl = document.getElementById('newRedeemTokens');
+    const maxUsesEl = document.getElementById('newRedeemMaxUses');
+    const code = codeEl.value.trim().toUpperCase();
+    const tokens = parseInt(tokensEl.value, 10);
+    const maxUses = parseInt(maxUsesEl.value, 10) || 1;
+
+    if (!code || !tokens || tokens <= 0) {
+      showToast('✗ Isi kode dan jumlah token dengan benar');
+      return;
+    }
+
+    try {
+      await db.collection('redeemCodes').doc(code).set({
+        tokens: tokens,
+        maxUses: maxUses,
+        uses: 0,
+        active: true,
+        createdAt: firebase.firestore.FieldValue.serverTimestamp()
+      });
+      codeEl.value = '';
+      tokensEl.value = '';
+      maxUsesEl.value = '1';
+      showToast('✓ Kode redeem dibuat');
+      loadRedeemCodeList();
+    } catch (err) {
+      showToast('✗ Gagal membuat kode: ' + err.message);
+    }
+  }
+
+  async function loadRedeemCodeList() {
+    const container = document.getElementById('redeemCodeList');
+    if (!container) return;
+    container.innerHTML = `<div style="color:var(--muted);font-size:13px;">Memuat kode...</div>`;
+    try {
+      const snap = await db.collection('redeemCodes').orderBy('createdAt', 'desc').get();
+      if (snap.empty) {
+        container.innerHTML = `<div style="color:var(--muted);font-size:13px;">Belum ada kode redeem.</div>`;
+        return;
+      }
+      container.innerHTML = '';
+      snap.forEach(doc => {
+        const d = doc.data();
+        const row = document.createElement('div');
+        row.style = 'display:flex;align-items:center;justify-content:space-between;gap:8px;background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:8px 12px;';
+        row.innerHTML = `
+          <div>
+            <div style="font-family:var(--mono);font-size:13px;color:var(--accent);">${escapeHtml(doc.id)}</div>
+            <div style="font-size:11px;color:var(--muted);">+${d.tokens || 0} tokens · ${d.uses || 0}/${d.maxUses || 1} dipakai · ${d.active === false ? 'nonaktif' : 'aktif'}</div>
+          </div>
+          <div style="display:flex;gap:6px;">
+            <button class="btn-ghost" style="padding:4px 10px;font-size:12px;" onclick="toggleRedeemCodeActive('${doc.id}', ${d.active === false})">${d.active === false ? 'Aktifkan' : 'Nonaktifkan'}</button>
+            <button class="btn-ghost" style="padding:4px 10px;font-size:12px;color:var(--vid);" onclick="deleteRedeemCode('${doc.id}')">Hapus</button>
+          </div>
+        `;
+        container.appendChild(row);
+      });
+    } catch (err) {
+      container.innerHTML = `<div style="color:var(--vid);font-size:13px;">Gagal memuat: ${escapeHtml(err.message)}</div>`;
+    }
+  }
+
+  async function toggleRedeemCodeActive(code, makeActive) {
+    try {
+      await db.collection('redeemCodes').doc(code).update({ active: makeActive });
+      loadRedeemCodeList();
+    } catch (err) {
+      showToast('✗ Gagal mengubah status: ' + err.message);
+    }
+  }
+
+  async function deleteRedeemCode(code) {
+    if (!confirm(`Hapus kode redeem "${code}"?`)) return;
+    try {
+      await db.collection('redeemCodes').doc(code).delete();
+      loadRedeemCodeList();
+    } catch (err) {
+      showToast('✗ Gagal menghapus: ' + err.message);
+    }
+  }
+
+  // ── ADMIN: MAINTENANCE MODE (Firestore) ──
+  const MAINTENANCE_DOC = () => db.collection('settings').doc('maintenance');
+
+  async function loadMaintenanceStatus() {
+    const label = document.getElementById('maintenanceStatusLabel');
+    const msgEl = document.getElementById('maintenanceMessage');
+    const btn = document.getElementById('maintenanceToggleBtn');
+    try {
+      const snap = await MAINTENANCE_DOC().get();
+      const data = snap.exists ? snap.data() : { enabled: false, message: '' };
+      if (label) {
+        label.textContent = data.enabled ? '🔴 AKTIF' : '🟢 NONAKTIF';
+        label.style.color = data.enabled ? 'var(--vid)' : 'var(--green)';
+      }
+      if (msgEl) msgEl.value = data.message || 'Situs sedang dalam perbaikan. Silakan kembali lagi nanti.';
+      if (btn) btn.textContent = data.enabled ? 'Matikan Maintenance' : 'Aktifkan Maintenance';
+    } catch (err) {
+      if (label) label.textContent = 'Gagal memuat status';
+    }
+  }
+
+  async function toggleMaintenance() {
+    try {
+      const snap = await MAINTENANCE_DOC().get();
+      const current = snap.exists ? !!snap.data().enabled : false;
+      await MAINTENANCE_DOC().set({ enabled: !current }, { merge: true });
+      loadMaintenanceStatus();
+      showToast(!current ? '✓ Maintenance diaktifkan' : '✓ Maintenance dimatikan');
+    } catch (err) {
+      showToast('✗ Gagal mengubah status: ' + err.message);
+    }
+  }
+
+  async function saveMaintenanceMessage() {
+    const msgEl = document.getElementById('maintenanceMessage');
+    try {
+      await MAINTENANCE_DOC().set({ message: msgEl.value.trim() }, { merge: true });
+      showToast('✓ Pesan maintenance disimpan');
+    } catch (err) {
+      showToast('✗ Gagal menyimpan pesan: ' + err.message);
+    }
+  }
+
+  // ── MAINTENANCE CHECK (runs for all visitors) ──
+  async function checkMaintenanceMode(isAdmin) {
+    try {
+      const snap = await MAINTENANCE_DOC().get();
+      const data = snap.exists ? snap.data() : { enabled: false };
+      const overlay = document.getElementById('maintenanceOverlay');
+      if (data.enabled && !isAdmin) {
+        document.getElementById('maintenanceOverlayMsg').textContent =
+          data.message || 'Situs sedang dalam perbaikan. Silakan kembali lagi nanti.';
+        overlay.style.display = 'flex';
+        overlay.classList.add('open');
+      } else {
+        overlay.style.display = 'none';
+        overlay.classList.remove('open');
+      }
+    } catch (err) {
+      // If maintenance check fails, allow access as normal
+    }
   }
 
   function showRedeemBanner(msg, type) {
