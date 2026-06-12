@@ -1190,7 +1190,14 @@
       loginStatus.textContent = user.email;
       loginBtn.onclick = logoutGoogle;
 
-      await loadUserData(user);
+      try {
+        await loadUserData(user);
+      } catch (err) {
+        console.error('loadUserData failed:', err);
+        cachedTokens = STARTING_TOKENS;
+        renderTokens(cachedTokens);
+        showToast('⚠️ Gagal sync token: ' + err.message);
+      }
 
       gate.classList.add('hidden');
       content.classList.add('visible');
